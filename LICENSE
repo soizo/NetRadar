@@ -1,0 +1,139 @@
+NetRadar Open Source License v1.0
+==================================
+
+Copyright (c) 2024 soizoktantas
+Project: NetRadar — Elegant Network Speed Testing Tool
+Repository: https://github.com/soizoktantas/NetRadar
+
+TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+1. DEFINITIONS
+
+"License" shall mean the terms and conditions for use, reproduction, and
+distribution as defined by this document.
+
+"Licensor" shall mean soizoktantas, the copyright owner of NetRadar.
+
+"Software" shall mean the NetRadar application, including all source code,
+documentation, configuration files, assets, and associated materials.
+
+"Derivative Works" shall mean any work that is based on or derived from the
+Software, including but not limited to modifications, translations, adaptations,
+ports, or any other form in which the Software may be recast, transformed, or
+adapted.
+
+"Contributor" shall mean any individual or entity that submits modifications,
+enhancements, bug fixes, or other contributions to the Software.
+
+2. GRANT OF LICENSE
+
+Subject to the terms and conditions of this License, the Licensor hereby grants
+you a worldwide, royalty-free, non-exclusive license to:
+
+  a) Use, copy, and run the Software for any purpose, including commercial use;
+  b) Modify the Software and create Derivative Works based upon the Software;
+  c) Distribute copies of the Software and Derivative Works;
+  d) Sublicense the Software to third parties.
+
+3. ATTRIBUTION REQUIREMENTS (MANDATORY)
+
+All distributions of the Software or Derivative Works, whether in source or
+binary form, MUST comply with the following attribution requirements:
+
+  a) You must retain this copyright notice, the list of conditions, and the
+     following disclaimer in all copies or substantial portions of the Software.
+
+  b) You must include clear, visible attribution to "soizoktantas" and "NetRadar"
+     in any documentation, about screens, or user-facing interfaces. The
+     attribution must read substantially as:
+
+       "Powered by NetRadar — by soizoktantas
+        https://github.com/soizoktantas/NetRadar"
+
+  c) You must include a link to https://github.com/soizoktantas/NetRadar in
+     any README, documentation, or product description.
+
+  d) You MUST NOT remove, obscure, or alter any attribution notices or credits
+     to "soizoktantas" or "NetRadar" from the user interface of the Software
+     or any Derivative Works. This includes but is not limited to:
+     - The title bar attribution
+     - The about/info screen credits
+     - Any embedded copyright notices
+     - Footer or header branding
+
+4. COMMERCIAL USE
+
+Commercial use of the Software is permitted, provided that:
+
+  a) All attribution requirements in Section 3 are fully satisfied.
+  b) The Software is not misrepresented as your own original work without
+     crediting the original NetRadar project and soizoktantas.
+  c) Any commercial product or service built using the Software prominently
+     displays attribution to NetRadar and soizoktantas.
+
+5. REDISTRIBUTION CONDITIONS
+
+When redistributing the Software or Derivative Works:
+
+  a) You must include a copy of this License with every distribution.
+  b) Any modified files must carry prominent notices stating that you changed
+     the files and the date of any changes.
+  c) Derivative Works must be distributed under terms that are at least as
+     protective of the attribution requirements as this License.
+
+6. CONTRIBUTIONS
+
+By submitting contributions to this project, you agree that:
+
+  a) Your contributions are licensed under the same terms as this License.
+  b) You grant the Licensor a perpetual, worldwide, non-exclusive, royalty-free
+     license to use, modify, and distribute your contributions.
+  c) You represent that you have the legal right to submit such contributions.
+
+7. DISCLAIMER OF WARRANTIES
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. THE LICENSOR MAKES NO
+REPRESENTATIONS OR WARRANTIES ABOUT THE SUITABILITY OF THE SOFTWARE FOR ANY
+PURPOSE.
+
+IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+8. TRADEMARKS
+
+This License does not grant permission to use the trade names, trademarks,
+service marks, or product names of the Licensor, except as required for
+reasonable and customary use in describing the origin of the Software and
+reproducing the content of this License.
+
+9. TERMINATION
+
+Your rights under this License will terminate automatically if you fail to
+comply with any of the terms herein. Upon termination, you must destroy all
+copies of the Software in your possession. Sections 7 and 8 shall survive
+termination.
+
+10. GOVERNING LAW
+
+This License shall be governed by the laws applicable in the jurisdiction of
+the copyright holder, without regard to conflict of law provisions.
+
+---
+
+Summary (not legally binding):
+  - FREE to use, modify, distribute (including commercially)
+  - MUST keep attribution to soizoktantas and NetRadar
+  - MUST link to https://github.com/soizoktantas/NetRadar
+  - CANNOT remove UI credits/attribution
+  - NO warranty provided
+
+---
+
+END OF TERMS AND CONDITIONS
