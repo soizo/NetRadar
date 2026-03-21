@@ -22,7 +22,9 @@
 	--xp-success: #2b8a41;
 	--xp-warning: #b98518;
 	--xp-danger: #b24a4a;
-	--font-ui: Tahoma, Verdana, "Trebuchet MS", sans-serif;
+	--font-ui: Arial, Verdana, "Trebuchet MS", SimSun, "MS Gothic", sans-serif;
+	--font-mono: Courier, "Courier New", monospace;
+	--font-icon: Marlett, Webdings, Wingdings, Arial, sans-serif;
 }
 
 *,
@@ -86,7 +88,7 @@ button {
 }
 
 code {
-	font-family: "Lucida Console", "Courier New", monospace;
+	font-family: var(--font-mono);
 }
 
 ::-webkit-scrollbar {
@@ -312,6 +314,7 @@ code {
 	background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(106, 167, 249, 0.38) 100%);
 	color: #fff;
 	font-size: 12px;
+	font-family: var(--font-icon);
 }
 
 .titlebar-btn:hover {
@@ -455,6 +458,22 @@ code {
 	font-size: 12px;
 	color: var(--xp-text-soft);
 	background: rgba(255, 255, 255, 0.65);
+}
+
+.sidebar-place--link {
+	width: 100%;
+	text-align: left;
+	border: none;
+	border-radius: 0;
+	text-decoration: underline;
+	text-decoration-color: rgba(0, 80, 200, 0.4);
+	color: var(--xp-blue-1);
+}
+
+.sidebar-place--link:hover {
+	background: rgba(210, 228, 255, 0.8);
+	color: var(--xp-blue-1);
+	text-decoration-color: var(--xp-blue-1);
 }
 
 .navbar-status {
@@ -1485,7 +1504,7 @@ select:focus {
 
 .terminal-timestamp {
 	color: var(--xp-text-muted);
-	font-family: "Lucida Console", "Courier New", monospace;
+	font-family: var(--font-mono);
 }
 
 .terminal-pill {
@@ -2368,7 +2387,7 @@ select:focus {
 }
 
 .diag-dns-entry__ip {
-	font-family: "Courier New", monospace;
+	font-family: var(--font-mono);
 	color: var(--xp-text);
 	min-width: 120px;
 }
@@ -2397,7 +2416,7 @@ select:focus {
 	padding: 3px 8px 3px 0;
 	color: var(--xp-text);
 	border-bottom: 1px solid var(--xp-border-soft);
-	font-family: "Courier New", monospace;
+	font-family: var(--font-mono);
 }
 
 .diag-iface-table tr:last-child td {

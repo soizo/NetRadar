@@ -13,5 +13,6 @@ contextBridge.exposeInMainWorld('api', {
   diagCensorship:   (cc)  => ipcRenderer.invoke('diag-censorship', cc),
   diagDns:          ()    => ipcRenderer.invoke('diag-dns'),
   diagLocalNetwork: ()    => ipcRenderer.invoke('diag-local-network'),
-  diagWifi:         ()    => ipcRenderer.invoke('diag-wifi')
+  diagWifi:         ()    => ipcRenderer.invoke('diag-wifi'),
+  diagSysContext:   ()    => ipcRenderer.invoke('diag-sys-context')
 })

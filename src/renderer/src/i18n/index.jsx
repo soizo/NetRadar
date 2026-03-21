@@ -331,6 +331,33 @@ const en = {
   diag_wifi_speed: 'Link speed',
   diag_wifi_ethernet: 'Connected via Ethernet or cable — no Wi-Fi data available.',
 
+  // System context card (tunnel/proxy/VPN process)
+  diag_sys_title: 'System Network Context',
+  diag_sys_tunnel: 'Tunnel interfaces',
+  diag_sys_tunnel_none: 'None detected',
+  diag_sys_proxy: 'System proxy',
+  diag_sys_proxy_none: 'Not configured',
+  diag_sys_vpn_apps: 'VPN/proxy apps',
+  diag_sys_vpn_none: 'None detected',
+  diag_sys_confidence: 'VPN signal strength',
+  diag_sys_conf_none: 'No VPN signals',
+  diag_sys_conf_low: 'Weak (1 signal)',
+  diag_sys_conf_high: 'Strong (2+ signals)',
+
+  // NAT card
+  diag_nat_title: 'NAT Type',
+  diag_nat_type: 'NAT type',
+  diag_nat_none: 'None (direct)',
+  diag_nat_cone: 'Cone NAT',
+  diag_nat_symmetric: 'Symmetric NAT',
+  diag_nat_unknown: 'Unknown',
+  diag_nat_external_ip: 'External IP (STUN)',
+  diag_nat_external_port: 'External port',
+  diag_nat_relay: 'TURN relay',
+  diag_nat_udp_blocked: 'UDP blocked',
+  diag_nat_has_nat: 'Behind NAT',
+  diag_nat_no_nat: 'No NAT',
+
   // LAN & Router card
   diag_lan_title: 'LAN & Router',
   diag_lan_gateway: 'Default gateway',
@@ -675,6 +702,33 @@ const zhCN = {
   diag_wifi_security: '安全类型',
   diag_wifi_speed: '链路速率',
   diag_wifi_ethernet: '通过有线网络连接 — 无 Wi-Fi 数据。',
+
+  // System context card
+  diag_sys_title: '系统网络环境',
+  diag_sys_tunnel: '隧道接口',
+  diag_sys_tunnel_none: '未检测到',
+  diag_sys_proxy: '系统代理',
+  diag_sys_proxy_none: '未配置',
+  diag_sys_vpn_apps: 'VPN/代理程序',
+  diag_sys_vpn_none: '未检测到',
+  diag_sys_confidence: 'VPN 信号强度',
+  diag_sys_conf_none: '无 VPN 信号',
+  diag_sys_conf_low: '弱（1 个信号）',
+  diag_sys_conf_high: '强（2+ 个信号）',
+
+  // NAT card
+  diag_nat_title: 'NAT 类型',
+  diag_nat_type: 'NAT 类型',
+  diag_nat_none: '无（直连）',
+  diag_nat_cone: '锥形 NAT',
+  diag_nat_symmetric: '对称型 NAT',
+  diag_nat_unknown: '未知',
+  diag_nat_external_ip: '外部 IP（STUN）',
+  diag_nat_external_port: '外部端口',
+  diag_nat_relay: 'TURN 中继',
+  diag_nat_udp_blocked: 'UDP 已封锁',
+  diag_nat_has_nat: '位于 NAT 后',
+  diag_nat_no_nat: '无 NAT',
 
   // LAN & Router card
   diag_lan_title: '局域网与路由器',

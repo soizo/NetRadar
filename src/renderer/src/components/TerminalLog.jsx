@@ -17,12 +17,11 @@ function logTypeColor(type) {
 
 export default function TerminalLog({ logs = [], status }) {
   const { t } = useT()
-  const bottomRef = useRef(null)
   const containerRef = useRef(null)
 
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' })
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight
     }
   }, [logs])
 
@@ -65,7 +64,6 @@ export default function TerminalLog({ logs = [], status }) {
             </span>
           </div>
         ))}
-        <div ref={bottomRef} />
         {isRunning && (
           <div className="terminal-line">
             <span className="terminal-timestamp">{new Date().toTimeString().slice(0, 8)}</span>

@@ -77,9 +77,15 @@ export default function Navbar({ currentView, onNavigate, status = 'idle', confi
       <section className="sidebar-group sidebar-group--places">
         <div className="sidebar-group__title">{t('nav_places')}</div>
         <div className="sidebar-places">
-          <div className="sidebar-place">{t('nav_place_network')}</div>
-          <div className="sidebar-place">{t('nav_place_entire')}</div>
-          <div className="sidebar-place">{t('nav_place_panel')}</div>
+          <button className="sidebar-place sidebar-place--link" onClick={() => onNavigate('diagnostics')}>
+            {t('nav_place_network')}
+          </button>
+          <button className="sidebar-place sidebar-place--link" onClick={() => onNavigate('history')}>
+            {t('nav_place_entire')}
+          </button>
+          <button className="sidebar-place sidebar-place--link" onClick={() => onNavigate('config')}>
+            {t('nav_place_panel')}
+          </button>
         </div>
       </section>
 

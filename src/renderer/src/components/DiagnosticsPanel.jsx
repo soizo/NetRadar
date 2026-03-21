@@ -7,6 +7,7 @@ import iconCens     from '../assets/icons/icon-cens.png'
 import iconDns      from '../assets/icons/icon-dns.png'
 import iconWifi     from '../assets/icons/icon-wifi.png'
 import iconRouter   from '../assets/icons/icon-router.png'
+import iconConfig   from '../assets/icons/icon-config.png'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -351,6 +352,114 @@ function LanCard({ data, loading, error }) {
   )
 }
 
+// ─── System Network Context ───────────────────────────────────────────────────
+
+function SysContextCard({ data, loading, error }) {
+  const { t } = useT()
+  const hasSignal = data?.vpnConfidence > 0
+  const state = loading ? 'loading' : error ? 'error' : data ? (hasSignal ? 'warn' : 'ok') : 'idle'
+
+  return (
+    <CardShell icon={iconConfig} title={t('diag_sys_title')} dotState={state}>
+      {loading && <div className="diag-state">{t('diag_loading')}</div>}
+      {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
+      {!loading && data && (
+        <>
+          <Row label={t('diag_sys_tunnel')}>
+            {data.tunnelInterfaces?.length > 0
+              ? <div className="diag-badges">
+                  {data.tunnelInterfaces.map((iface, i) => (
+                    <span key={i} className="diag-badge diag-badge--warn">
+                      {iface.name}{iface.address ? ` (${iface.address})` : ''}
+                    </span>
+                  ))}
+                </div>
+              : <span className="diag-row__value--muted">{t('diag_sys_tunnel_none')}</span>
+            }
+          </Row>
+          <Row label={t('diag_sys_proxy')}>
+            {data.hasProxy
+              ? <div className="diag-badges">
+                  {data.proxySettings?.httpEnabled  && <span className="diag-badge diag-badge--warn">HTTP {data.proxySettings.httpProxy ? `→ ${data.proxySettings.httpProxy}` : ''}</span>}
+                  {data.proxySettings?.httpsEnabled && <span className="diag-badge diag-badge--warn">HTTPS {data.proxySettings.httpsProxy ? `→ ${data.proxySettings.httpsProxy}` : ''}</span>}
+                  {data.proxySettings?.socksEnabled && <span className="diag-badge diag-badge--warn">SOCKS {data.proxySettings.socksProxy ? `→ ${data.proxySettings.socksProxy}` : ''}</span>}
+                </div>
+              : <span className="diag-row__value--muted">{t('diag_sys_proxy_none')}</span>
+            }
+          </Row>
+          <Row label={t('diag_sys_vpn_apps')}>
+            {data.vpnProcesses?.length > 0
+              ? <div className="diag-badges">
+                  {data.vpnProcesses.map((p, i) => (
+                    <span key={i} className="diag-badge diag-badge--warn">{p}</span>
+                  ))}
+                </div>
+              : <span className="diag-row__value--muted">{t('diag_sys_vpn_none')}</span>
+            }
+          </Row>
+          <Row label={t('diag_sys_confidence')}>
+            <span className={
+              data.vpnConfidence === 0 ? 'diag-row__value--muted'
+              : data.vpnConfidence === 1 ? 'diag-row__value--warn'
+              : 'diag-row__value--error'
+            }>
+              {data.vpnConfidence === 0 ? t('diag_sys_conf_none')
+               : data.vpnConfidence === 1 ? t('diag_sys_conf_low')
+               : t('diag_sys_conf_high')}
+            </span>
+          </Row>
+        </>
+      )}
+    </CardShell>
+  )
+}
+
+// ─── NAT Type ─────────────────────────────────────────────────────────────────
+
+const NAT_TYPE_LABELS = { NONE: 'diag_nat_none', CONE: 'diag_nat_cone', SYMMETRIC: 'diag_nat_symmetric', UNKNOWN: 'diag_nat_unknown' }
+const NAT_TYPE_CLASS  = { NONE: 'diag-row__value--ok', CONE: '', SYMMETRIC: 'diag-row__value--warn', UNKNOWN: 'diag-row__value--muted' }
+const NAT_DOT_STATE   = { NONE: 'ok', CONE: 'ok', SYMMETRIC: 'warn', UNKNOWN: 'idle', null: 'idle' }
+
+function NatCard({ data, loading, error }) {
+  const { t } = useT()
+  const state = loading ? 'loading' : error ? 'error' : data ? (NAT_DOT_STATE[data.type] || 'idle') : 'idle'
+
+  return (
+    <CardShell icon={iconCens} title={t('diag_nat_title')} dotState={state}>
+      {loading && <div className="diag-state">{t('diag_loading')}</div>}
+      {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
+      {!loading && data && (
+        <>
+          <Row label={t('diag_nat_type')}>
+            <span className={NAT_TYPE_CLASS[data.type] || ''}>
+              {t(NAT_TYPE_LABELS[data.type] || 'diag_nat_unknown')}
+            </span>
+          </Row>
+          {data.hasNat !== null && (
+            <Row label="">
+              <span className={data.hasNat ? 'diag-badge diag-badge--warn' : 'diag-badge diag-badge--active'}>
+                {data.hasNat ? t('diag_nat_has_nat') : t('diag_nat_no_nat')}
+              </span>
+            </Row>
+          )}
+          {data.externalIp && (
+            <Row label={t('diag_nat_external_ip')} valueClass="diag-row__value--blue">{data.externalIp}</Row>
+          )}
+          {data.externalPort && (
+            <Row label={t('diag_nat_external_port')} valueClass="diag-row__value--muted">{data.externalPort}</Row>
+          )}
+          {data.hasRelay && (
+            <Row label={t('diag_nat_relay')} valueClass="diag-row__value--warn">{t('diag_cens_yes')}</Row>
+          )}
+          {data.udpBlocked && (
+            <Row label={t('diag_nat_udp_blocked')} valueClass="diag-row__value--error">{t('diag_cens_yes')}</Row>
+          )}
+        </>
+      )}
+    </CardShell>
+  )
+}
+
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 export default function DiagnosticsPanel() {
@@ -404,10 +513,20 @@ export default function DiagnosticsPanel() {
             error={errors.reputation}
             ipData={data.ip}
           />
+          <SysContextCard
+            data={data.sysContext}
+            loading={loading.sysContext}
+            error={errors.sysContext}
+          />
           <CensCard
             data={data.censorship}
             loading={loading.censorship}
             error={errors.censorship}
+          />
+          <NatCard
+            data={data.nat}
+            loading={loading.nat}
+            error={errors.nat}
           />
           <DnsCard
             data={data.dns}

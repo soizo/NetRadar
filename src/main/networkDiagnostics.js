@@ -413,3 +413,105 @@ export function getWifiInfo() {
   }
   return null
 }
+
+// ─── System Tunnel / Proxy / VPN Process Detection ───────────────────────────
+
+const VPN_PROCESS_PATTERNS = [
+  'clash', 'clashx', 'mihomo',
+  'shadowsocks', 'sslocal', 'ssr',
+  'v2ray', 'v2rayx', 'v2rayng',
+  'xray', 'xrayx',
+  'surge', 'surge4',
+  'trojan', 'trojan-go',
+  'hysteria', 'hysteria2',
+  'sing-box',
+  'openvpn',
+  'wireguard', 'wg-quick',
+  'zerotier', 'zerotier-one',
+  'tailscale', 'tailscaled',
+  'tunnelblick',
+  'nordvpn', 'nordvpnd',
+  'expressvpn', 'expressvpnd',
+  'surfshark',
+  'mullvad', 'mullvad-vpn',
+  'proxifier',
+  'privoxy'
+]
+
+export function getSystemNetworkContext() {
+  const platform = process.platform
+
+  // ── 1. Tunnel interfaces ──────────────────────────────────────────────────
+  const ifaces = networkInterfaces()
+  const tunnelInterfaces = []
+  for (const [name, addrs] of Object.entries(ifaces || {})) {
+    if (/^(utun|tun|tap|ppp|ipsec|wg|zt)\d*/i.test(name)) {
+      const ipv4 = addrs?.find(a => a.family === 'IPv4')
+      tunnelInterfaces.push({ name, address: ipv4?.address || addrs?.[0]?.address || null })
+    }
+  }
+
+  // ── 2. System proxy settings ──────────────────────────────────────────────
+  let proxySettings = null
+  try {
+    if (platform === 'darwin') {
+      const out = execSync('scutil --proxy', { timeout: 3000, stdio: 'pipe' }).toString()
+      const num = (key) => { const m = out.match(new RegExp(`${key}\\s*:\\s*(\\d+)`)); return m ? Number(m[1]) : 0 }
+      const str = (key) => { const m = out.match(new RegExp(`${key}\\s*:\\s*(.+)`)); return m ? m[1].trim() : null }
+      proxySettings = {
+        httpEnabled:  num('HTTPEnable')  === 1,
+        httpsEnabled: num('HTTPSEnable') === 1,
+        socksEnabled: num('SOCKSEnable') === 1,
+        httpProxy:  str('HTTPProxy')  ? `${str('HTTPProxy')}:${str('HTTPPort')  || '80'}`   : null,
+        httpsProxy: str('HTTPSProxy') ? `${str('HTTPSProxy')}:${str('HTTPSPort') || '443'}` : null,
+        socksProxy: str('SOCKSProxy') ? `${str('SOCKSProxy')}:${str('SOCKSPort') || '1080'}`: null
+      }
+    } else if (platform === 'win32') {
+      const regOut = execSync('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable', { timeout: 3000, stdio: 'pipe' }).toString()
+      const enabled = /0x1/.test(regOut)
+      let server = null
+      try { const s = execSync('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer', { timeout: 3000, stdio: 'pipe' }).toString(); server = s.match(/ProxyServer\s+REG_SZ\s+(.+)/)?.[1]?.trim() || null } catch {}
+      proxySettings = { httpEnabled: enabled, httpProxy: server }
+    } else if (platform === 'linux') {
+      const h = process.env.http_proxy || process.env.HTTP_PROXY || null
+      const hs = process.env.https_proxy || process.env.HTTPS_PROXY || null
+      proxySettings = { httpEnabled: !!h, httpsEnabled: !!hs, httpProxy: h, httpsProxy: hs }
+    }
+  } catch { /* ignore */ }
+
+  // ── 3. Known VPN/proxy processes ─────────────────────────────────────────
+  const detectedProcesses = []
+  if (platform === 'darwin' || platform === 'linux') {
+    try {
+      const psOut = execSync('ps -eo comm 2>/dev/null || ps aux', { timeout: 4000, stdio: 'pipe' }).toString().toLowerCase()
+      for (const name of VPN_PROCESS_PATTERNS) {
+        if (psOut.includes(name)) detectedProcesses.push(name)
+      }
+    } catch { /* ignore */ }
+    if (platform === 'darwin') {
+      try {
+        const lsOut = execSync('lsappinfo list 2>/dev/null', { timeout: 4000, stdio: 'pipe' }).toString().toLowerCase()
+        for (const name of VPN_PROCESS_PATTERNS) {
+          if (lsOut.includes(name) && !detectedProcesses.includes(name)) detectedProcesses.push(name)
+        }
+      } catch { /* ignore */ }
+    }
+  } else if (platform === 'win32') {
+    try {
+      const wmicOut = execSync('tasklist /fo csv /nh 2>nul', { timeout: 4000, stdio: 'pipe' }).toString().toLowerCase()
+      for (const name of VPN_PROCESS_PATTERNS) {
+        if (wmicOut.includes(name)) detectedProcesses.push(name)
+      }
+    } catch { /* ignore */ }
+  }
+
+  const hasProxy  = !!(proxySettings?.httpEnabled || proxySettings?.httpsEnabled || proxySettings?.socksEnabled)
+  const hasTunnel = tunnelInterfaces.length > 0
+  const hasVpnApp = detectedProcesses.length > 0
+  return {
+    tunnelInterfaces, hasTunnel,
+    proxySettings,    hasProxy,
+    vpnProcesses: detectedProcesses, hasVpnApp,
+    vpnConfidence: (hasTunnel ? 1 : 0) + (hasProxy ? 1 : 0) + (hasVpnApp ? 1 : 0)
+  }
+}

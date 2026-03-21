@@ -7,7 +7,8 @@ import {
   checkCensorshipConnectivity,
   getDnsInfo,
   getLocalNetworkInfo,
-  getWifiInfo
+  getWifiInfo,
+  getSystemNetworkContext
 } from './networkDiagnostics.js'
 
 const isDev = process.env.NODE_ENV === 'development'
@@ -92,6 +93,7 @@ app.whenReady().then(() => {
   ipcMain.handle('diag-dns',            async ()        => getDnsInfo())
   ipcMain.handle('diag-local-network',  async ()        => getLocalNetworkInfo())
   ipcMain.handle('diag-wifi',           async ()        => getWifiInfo())
+  ipcMain.handle('diag-sys-context',    async ()        => getSystemNetworkContext())
 
   ipcMain.on('window-minimize', (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)

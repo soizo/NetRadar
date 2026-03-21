@@ -49,6 +49,7 @@ export default function App() {
   } = useSpeedTest()
 
   const savedResultRef = useRef(null)
+  const viewBodyRef = useRef(null)
 
   useEffect(() => {
     async function loadConfig() {
@@ -105,6 +106,10 @@ export default function App() {
     const newConfig = { ...config, history: newHistory }
     await handleSaveConfig(newConfig)
   }, [config, handleSaveConfig])
+
+  useEffect(() => {
+    if (viewBodyRef.current) viewBodyRef.current.scrollTop = 0
+  }, [currentView])
 
   useEffect(() => {
     if (status === 'complete' && results && results !== savedResultRef.current) {
@@ -225,7 +230,7 @@ export default function App() {
               </div>
             </header>
 
-            <div className="view-body">
+            <div className="view-body" ref={viewBodyRef}>
               {currentView === 'dashboard' && (
                 <Dashboard
                   config={config}
