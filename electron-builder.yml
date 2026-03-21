@@ -1,6 +1,7 @@
 appId: com.soizoktantas.netradar
 productName: NetRadar
 copyright: "Copyright © 2024 soizoktantas. All rights reserved."
+icon: resources/icon.png
 directories:
   buildResources: resources
   output: dist

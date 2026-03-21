@@ -1,19 +1,20 @@
 import React from 'react'
+import { useT } from '../i18n/index.jsx'
 
 function latencyColor(ms) {
-  if (ms == null || ms === 0) return 'var(--text-muted)'
-  if (ms < 20) return 'var(--text-primary)'
-  if (ms < 50) return '#aaff00'
-  if (ms < 100) return 'var(--accent-amber)'
-  return 'var(--accent-red)'
+  if (ms == null || ms === 0) return 'var(--xp-text-muted)'
+  if (ms < 20) return 'var(--xp-success)'
+  if (ms < 50) return '#6b9f1f'
+  if (ms < 100) return 'var(--xp-warning)'
+  return 'var(--xp-danger)'
 }
 
 function jitterColor(ms) {
-  if (ms == null || ms === 0) return 'var(--text-muted)'
-  if (ms < 5) return 'var(--text-primary)'
-  if (ms < 15) return '#aaff00'
-  if (ms < 30) return 'var(--accent-amber)'
-  return 'var(--accent-red)'
+  if (ms == null || ms === 0) return 'var(--xp-text-muted)'
+  if (ms < 5) return 'var(--xp-success)'
+  if (ms < 15) return '#6b9f1f'
+  if (ms < 30) return 'var(--xp-warning)'
+  return 'var(--xp-danger)'
 }
 
 function formatMs(val) {
@@ -22,6 +23,8 @@ function formatMs(val) {
 }
 
 export default function StatsGrid({ results }) {
+  const { t } = useT()
+
   const latencyMs = results?.latencyMs ?? null
   const jitterMs = results?.jitterMs ?? null
   const minMs = results?.minMs ?? null
@@ -29,32 +32,32 @@ export default function StatsGrid({ results }) {
 
   const metrics = [
     {
-      label: 'LATENCY',
+      label: t('metric_latency'),
       value: formatMs(latencyMs),
       color: latencyColor(latencyMs),
-      icon: '◇',
-      desc: 'Round trip time'
+      icon: '⏱',
+      desc: t('metric_latency_desc')
     },
     {
-      label: 'JITTER',
+      label: t('metric_jitter'),
       value: formatMs(jitterMs),
       color: jitterColor(jitterMs),
-      icon: '◈',
-      desc: 'Latency variance'
+      icon: '≈',
+      desc: t('metric_jitter_desc')
     },
     {
-      label: 'MIN RTT',
+      label: t('metric_best'),
       value: formatMs(minMs),
       color: latencyColor(minMs),
-      icon: '▼',
-      desc: 'Best latency'
+      icon: '↓',
+      desc: t('metric_best_desc')
     },
     {
-      label: 'MAX RTT',
+      label: t('metric_worst'),
       value: formatMs(maxMs),
       color: latencyColor(maxMs),
-      icon: '▲',
-      desc: 'Worst latency'
+      icon: '↑',
+      desc: t('metric_worst_desc')
     }
   ]
 
@@ -66,10 +69,7 @@ export default function StatsGrid({ results }) {
             <span className="stats-metric-icon" style={{ color: metric.color }}>{metric.icon}</span>
             <span className="stats-metric-label">{metric.label}</span>
           </div>
-          <div
-            className="stats-metric-value"
-            style={{ color: metric.color }}
-          >
+          <div className="stats-metric-value" style={{ color: metric.color }}>
             {metric.value}
           </div>
           <div className="stats-metric-desc">{metric.desc}</div>

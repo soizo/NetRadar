@@ -1,8 +1,12 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeImage } from 'electron'
 import { join } from 'path'
 import { getConfig, saveConfig, getConfigPath } from './configManager.js'
 
 const isDev = process.env.NODE_ENV === 'development'
+
+const iconPath = isDev
+  ? join(process.cwd(), 'resources/icon.png')
+  : join(__dirname, '../../resources/icon.png')
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -12,8 +16,8 @@ function createWindow() {
     minHeight: 640,
     show: false,
     autoHideMenuBar: true,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     frame: false,
+    icon: iconPath,
     backgroundColor: '#050505',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -24,6 +28,10 @@ function createWindow() {
   })
 
   mainWindow.on('ready-to-show', () => {
+    if (process.platform === 'darwin') {
+      mainWindow.setWindowButtonVisibility(false)
+      app.dock.setIcon(nativeImage.createFromPath(iconPath))
+    }
     mainWindow.show()
   })
 

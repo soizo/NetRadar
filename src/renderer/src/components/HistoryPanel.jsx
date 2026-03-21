@@ -1,141 +1,171 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { formatSpeed } from '../utils/scoring.js'
+import { useT } from '../i18n/index.jsx'
+import iconHistory from '../assets/icons/icon-history.png'
 
 function gradeColor(grade) {
-  if (!grade || grade === '--') return 'var(--text-muted)'
-  if (grade.startsWith('S')) return '#00d4ff'
-  if (grade.startsWith('A')) return '#00ff41'
-  if (grade.startsWith('B')) return '#aaff00'
-  if (grade === 'C') return '#ffcc00'
-  if (grade === 'D') return '#ff6c00'
-  return '#ff4444'
+  if (!grade || grade === '--') return '#6b7f99'
+  if (grade.startsWith('S')) return '#1f63d0'
+  if (grade.startsWith('A')) return '#2b8a41'
+  if (grade.startsWith('B')) return '#5b8d22'
+  if (grade === 'C') return '#b78517'
+  if (grade === 'D') return '#bb6b17'
+  return '#b04b4b'
 }
 
 function latencyColor(ms) {
-  if (!ms) return 'var(--text-muted)'
-  if (ms < 20) return 'var(--text-primary)'
-  if (ms < 50) return '#aaff00'
-  if (ms < 100) return 'var(--accent-amber)'
-  return 'var(--accent-red)'
+  if (!ms) return '#6b7f99'
+  if (ms < 20) return '#2b8a41'
+  if (ms < 50) return '#5b8d22'
+  if (ms < 100) return '#b78517'
+  return '#b04b4b'
 }
 
-function formatDate(iso) {
+function formatDate(iso, lang) {
   if (!iso) return '--'
   try {
-    const d = new Date(iso)
-    const date = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
-    const time = d.toTimeString().slice(0, 8)
-    return `${date} ${time}`
+    const date = new Date(iso)
+    return new Intl.DateTimeFormat(lang === 'zh-CN' ? 'zh-CN' : 'en-US', {
+      month: 'short',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(date)
   } catch {
     return iso
   }
 }
 
 export default function HistoryPanel({ history = [], onClearHistory }) {
+  const { t, lang } = useT()
   const [confirmClear, setConfirmClear] = useState(false)
 
   const sortedHistory = [...history].reverse()
+  const latest = sortedHistory[0]
+  const bestEntry = sortedHistory.reduce((best, entry) => {
+    if (!best) return entry
+    return (entry.score ?? -1) > (best.score ?? -1) ? entry : best
+  }, null)
+  const averageScore = history.length > 0
+    ? Math.round(history.reduce((sum, entry) => sum + (entry.score || 0), 0) / history.length)
+    : null
 
   function handleClear() {
     if (confirmClear) {
       onClearHistory()
       setConfirmClear(false)
-    } else {
-      setConfirmClear(true)
-      setTimeout(() => setConfirmClear(false), 3000)
+      return
     }
+    setConfirmClear(true)
+    setTimeout(() => setConfirmClear(false), 3000)
   }
 
   return (
     <div className="history-panel">
-      <div className="history-header">
-        <div className="history-title-row">
-          <div className="panel-header-standalone">
-            ◈ TEST HISTORY
-            <span className="history-count">[{history.length} records]</span>
+      <section className="panel history-banner">
+        <div className="panel-body history-banner-body">
+          <div className="history-banner-copy">
+            <img className="history-banner-icon" src={iconHistory} alt="" aria-hidden="true" />
+            <div className="history-banner-copy__body">
+              <div className="history-banner-title">{t('hist_title')}</div>
+              <div className="history-banner-text">
+                {history.length > 0
+                  ? t('hist_latest', { date: formatDate(latest.timestamp, lang) })
+                  : t('hist_empty_start')}
+              </div>
+            </div>
           </div>
-          {history.length > 0 && (
-            <button
-              className={`btn-small ${confirmClear ? 'btn-small--danger' : ''}`}
-              onClick={handleClear}
-              style={{
-                borderColor: confirmClear ? 'var(--accent-red)' : 'var(--border-normal)',
-                color: confirmClear ? 'var(--accent-red)' : 'var(--text-muted)'
-              }}
-            >
-              {confirmClear ? '⚠ CONFIRM CLEAR' : '✕ CLEAR HISTORY'}
-            </button>
+
+          <div className="history-banner-stats">
+            <div className="history-banner-stat">
+              <span className="history-banner-stat__label">{t('hist_entries')}</span>
+              <strong className="history-banner-stat__value">{history.length}</strong>
+            </div>
+            <div className="history-banner-stat">
+              <span className="history-banner-stat__label">{t('hist_best_grade')}</span>
+              <strong
+                className="history-banner-stat__value"
+                style={{ color: gradeColor(bestEntry?.grade || '--') }}
+              >
+                {bestEntry?.grade || '--'}
+              </strong>
+            </div>
+            <div className="history-banner-stat">
+              <span className="history-banner-stat__label">{t('hist_avg_score')}</span>
+              <strong className="history-banner-stat__value">{averageScore ?? '--'}</strong>
+            </div>
+            {history.length > 0 && (
+              <button
+                className={`btn-secondary ${confirmClear ? 'btn-secondary--danger' : ''}`}
+                onClick={handleClear}
+              >
+                {confirmClear ? t('hist_confirm_clear') : t('hist_clear')}
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="panel history-table-panel">
+        <div className="panel-header">{t('hist_table_title')}</div>
+        <div className="panel-body history-table-body">
+          {history.length === 0 ? (
+            <div className="history-empty">
+              <div className="history-empty-icon" aria-hidden="true">LOG</div>
+              <div className="history-empty-text">{t('hist_no_reports')}</div>
+              <div className="history-empty-sub">{t('hist_no_reports_sub')}</div>
+            </div>
+          ) : (
+            <div className="history-table-wrapper">
+              <table className="history-table">
+                <thead>
+                  <tr className="history-thead-row">
+                    <th className="history-th">{t('hist_th_time')}</th>
+                    <th className="history-th">{t('hist_th_server')}</th>
+                    <th className="history-th">{t('hist_th_dl')}</th>
+                    <th className="history-th">{t('hist_th_ul')}</th>
+                    <th className="history-th">{t('hist_th_latency')}</th>
+                    <th className="history-th">{t('hist_th_jitter')}</th>
+                    <th className="history-th">{t('hist_th_score')}</th>
+                    <th className="history-th">{t('hist_th_grade')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedHistory.map((entry, index) => (
+                    <tr key={entry.id || index} className="history-row">
+                      <td className="history-td history-td--date">{formatDate(entry.timestamp, lang)}</td>
+                      <td className="history-td history-td--server">{entry.server || '--'}</td>
+                      <td className="history-td history-td--download">{entry.downloadMbps ? formatSpeed(entry.downloadMbps) : '--'}</td>
+                      <td className="history-td history-td--upload">{entry.uploadMbps ? formatSpeed(entry.uploadMbps) : '--'}</td>
+                      <td className="history-td" style={{ color: latencyColor(entry.latencyMs) }}>
+                        {entry.latencyMs != null ? `${entry.latencyMs.toFixed(1)} ms` : '--'}
+                      </td>
+                      <td className="history-td" style={{ color: latencyColor(entry.jitterMs) }}>
+                        {entry.jitterMs != null ? `${entry.jitterMs.toFixed(1)} ms` : '--'}
+                      </td>
+                      <td className="history-td">{entry.score != null ? entry.score : '--'}</td>
+                      <td className="history-td history-td--grade">
+                        <span
+                          className="history-grade-badge"
+                          style={{
+                            color: gradeColor(entry.grade),
+                            borderColor: gradeColor(entry.grade)
+                          }}
+                        >
+                          {entry.grade || '--'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-      </div>
-
-      {history.length === 0 ? (
-        <div className="history-empty">
-          <div className="history-empty-icon">◈</div>
-          <div className="history-empty-text">NO TEST HISTORY</div>
-          <div className="history-empty-sub">Run a speed test to see results here.</div>
-        </div>
-      ) : (
-        <div className="history-table-wrapper">
-          <table className="history-table">
-            <thead>
-              <tr className="history-thead-row">
-                <th className="history-th">#</th>
-                <th className="history-th">DATE / TIME</th>
-                <th className="history-th">SERVER</th>
-                <th className="history-th">DOWNLOAD</th>
-                <th className="history-th">UPLOAD</th>
-                <th className="history-th">LATENCY</th>
-                <th className="history-th">JITTER</th>
-                <th className="history-th">SCORE</th>
-                <th className="history-th">GRADE</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedHistory.map((entry, idx) => (
-                <tr key={entry.id || idx} className="history-row">
-                  <td className="history-td history-td--index">
-                    {history.length - idx}
-                  </td>
-                  <td className="history-td history-td--date">
-                    {formatDate(entry.timestamp)}
-                  </td>
-                  <td className="history-td history-td--server">
-                    {entry.server || '--'}
-                  </td>
-                  <td className="history-td" style={{ color: 'var(--accent-cyan)' }}>
-                    {entry.downloadMbps ? formatSpeed(entry.downloadMbps) : '--'}
-                  </td>
-                  <td className="history-td" style={{ color: '#aaff00' }}>
-                    {entry.uploadMbps ? formatSpeed(entry.uploadMbps) : '--'}
-                  </td>
-                  <td className="history-td" style={{ color: latencyColor(entry.latencyMs) }}>
-                    {entry.latencyMs != null ? `${entry.latencyMs.toFixed(1)} ms` : '--'}
-                  </td>
-                  <td className="history-td" style={{ color: latencyColor(entry.jitterMs) }}>
-                    {entry.jitterMs != null ? `${entry.jitterMs.toFixed(1)} ms` : '--'}
-                  </td>
-                  <td className="history-td" style={{ color: gradeColor(entry.grade) }}>
-                    {entry.score != null ? entry.score : '--'}
-                  </td>
-                  <td className="history-td history-td--grade">
-                    <span
-                      className="history-grade-badge"
-                      style={{
-                        color: gradeColor(entry.grade),
-                        borderColor: gradeColor(entry.grade) + '40',
-                        textShadow: `0 0 8px ${gradeColor(entry.grade)}60`
-                      }}
-                    >
-                      {entry.grade || '--'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </section>
     </div>
   )
 }

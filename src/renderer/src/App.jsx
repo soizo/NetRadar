@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import TitleBar from './components/TitleBar.jsx'
 import Navbar from './components/Navbar.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import HistoryPanel from './components/HistoryPanel.jsx'
 import ConfigPanel from './components/ConfigPanel.jsx'
 import { useSpeedTest } from './hooks/useSpeedTest.js'
+import { useT } from './i18n/index.jsx'
+import iconStatus from './assets/icons/icon-status.png'
+import iconHistory from './assets/icons/icon-history.png'
+import iconConfig from './assets/icons/icon-config.png'
 
 const DEFAULT_CONFIG = {
   version: '1.0',
@@ -28,6 +32,7 @@ const DEFAULT_CONFIG = {
 }
 
 export default function App() {
+  const { t } = useT()
   const [config, setConfig] = useState(null)
   const [currentView, setCurrentView] = useState('dashboard')
   const [configLoading, setConfigLoading] = useState(true)
@@ -40,6 +45,8 @@ export default function App() {
     startTest,
     cancelTest
   } = useSpeedTest()
+
+  const savedResultRef = useRef(null)
 
   useEffect(() => {
     async function loadConfig() {
@@ -98,7 +105,8 @@ export default function App() {
   }, [config, handleSaveConfig])
 
   useEffect(() => {
-    if (status === 'complete' && results) {
+    if (status === 'complete' && results && results !== savedResultRef.current) {
+      savedResultRef.current = results
       handleTestComplete(results)
     }
   }, [status, results, handleTestComplete])
@@ -117,54 +125,126 @@ export default function App() {
     await handleSaveConfig(newConfig)
   }, [config, handleSaveConfig])
 
+  const VIEW_META = {
+    dashboard: {
+      iconSrc: iconStatus,
+      path: t('path_dashboard'),
+      title: t('title_dashboard'),
+      subtitle: t('subtitle_dashboard')
+    },
+    history: {
+      iconSrc: iconHistory,
+      path: t('path_history'),
+      title: t('title_history'),
+      subtitle: t('subtitle_history')
+    },
+    config: {
+      iconSrc: iconConfig,
+      path: t('path_config'),
+      title: t('title_config'),
+      subtitle: t('subtitle_config')
+    }
+  }
+
+  const STATUS_COPY = {
+    idle: t('sc_idle'),
+    latency: t('sc_latency'),
+    download: t('sc_download'),
+    upload: t('sc_upload'),
+    scoring: t('sc_scoring'),
+    complete: t('sc_complete'),
+    error: t('sc_error')
+  }
+
+  const viewMeta = VIEW_META[currentView] || VIEW_META.dashboard
+  const statusCopy = STATUS_COPY[status] || STATUS_COPY.idle
+  const isRunning = ['latency', 'download', 'upload', 'scoring'].includes(status)
+
   if (configLoading) {
     return (
-      <div style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#050505',
-        color: '#00ff41',
-        fontFamily: "'VT323', monospace",
-        fontSize: '24px',
-        letterSpacing: '4px'
-      }}>
-        INITIALIZING NETRADAR...
+      <div className="loading-screen">
+        <div className="loading-window">
+          <div className="loading-window__title">{t('app_name')}</div>
+          <div className="loading-window__body">
+            <div className="loading-window__badge">{t('loading_badge')}</div>
+            <div className="loading-window__bar">
+              <span className="loading-window__bar-fill" />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="app-shell">
-      <TitleBar />
-      <Navbar currentView={currentView} onNavigate={setCurrentView} />
-      <main className="app-content">
-        {currentView === 'dashboard' && (
-          <Dashboard
-            config={config}
-            status={status}
-            progress={progress}
-            results={results}
-            logs={logs}
-            onStartTest={handleStartTest}
-            onCancelTest={cancelTest}
-          />
-        )}
-        {currentView === 'history' && (
-          <HistoryPanel
-            history={config?.history || []}
-            onClearHistory={handleClearHistory}
-          />
-        )}
-        {currentView === 'config' && (
-          <ConfigPanel
-            config={config}
-            onSaveConfig={handleSaveConfig}
-          />
-        )}
-      </main>
+      <TitleBar currentView={currentView} status={status} />
+      <div className="app-workspace">
+        <Navbar
+          currentView={currentView}
+          onNavigate={setCurrentView}
+          status={status}
+          config={config}
+        />
+        <main className="app-content">
+          <div className="explorer-toolbar">
+            <div className="explorer-toolbar__field">
+              <span className="explorer-toolbar__label">{t('toolbar_address')}</span>
+              <div className="explorer-toolbar__value">{viewMeta.path}</div>
+            </div>
+            <div className={`explorer-toolbar__status explorer-toolbar__status--${status}`}>
+              <span className={`status-led status-led--${status} ${isRunning ? 'blink' : ''}`} />
+              {statusCopy}
+            </div>
+          </div>
+
+          <section className="content-window">
+            <header className="view-header">
+              <div className="view-header__icon" aria-hidden="true">
+                <img src={viewMeta.iconSrc} alt="" className="view-header__icon-img" />
+              </div>
+              <div className="view-header__copy">
+                <div className="view-header__eyebrow">{t('app_name')}</div>
+                <h1 className="view-header__title">{viewMeta.title}</h1>
+                <p className="view-header__subtitle">{viewMeta.subtitle}</p>
+              </div>
+              <div className={`view-header__status view-header__status--${status}`}>
+                <span className={`status-led status-led--${status} ${isRunning ? 'blink' : ''}`} />
+                <div className="view-header__status-copy">
+                  <strong>{t('toolbar_conn_state')}</strong>
+                  <span>{statusCopy}</span>
+                </div>
+              </div>
+            </header>
+
+            <div className="view-body">
+              {currentView === 'dashboard' && (
+                <Dashboard
+                  config={config}
+                  status={status}
+                  progress={progress}
+                  results={results}
+                  logs={logs}
+                  onStartTest={handleStartTest}
+                  onCancelTest={cancelTest}
+                />
+              )}
+              {currentView === 'history' && (
+                <HistoryPanel
+                  history={config?.history || []}
+                  onClearHistory={handleClearHistory}
+                />
+              )}
+              {currentView === 'config' && (
+                <ConfigPanel
+                  config={config}
+                  onSaveConfig={handleSaveConfig}
+                />
+              )}
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
   )
 }

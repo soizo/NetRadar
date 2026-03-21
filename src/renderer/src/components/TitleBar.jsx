@@ -1,11 +1,29 @@
 import React, { useState } from 'react'
+import { useT } from '../i18n/index.jsx'
 
-export default function TitleBar() {
+export default function TitleBar({ currentView = 'dashboard', status = 'idle' }) {
+  const { t } = useT()
   const [isMaximized, setIsMaximized] = useState(false)
   const platform = typeof window !== 'undefined' && window.api ? window.api.platform : 'unknown'
   const isMac = platform === 'darwin'
 
   const api = window.api || {}
+
+  const VIEW_TITLES = {
+    dashboard: t('view_dashboard'),
+    history: t('view_history'),
+    config: t('view_config')
+  }
+
+  const STATUS_LABELS = {
+    idle: t('st_idle'),
+    latency: t('st_latency'),
+    download: t('st_download'),
+    upload: t('st_upload'),
+    scoring: t('st_scoring'),
+    complete: t('st_complete'),
+    error: t('st_error')
+  }
 
   function handleMinimize() {
     if (api.windowMinimize) api.windowMinimize()
@@ -21,28 +39,28 @@ export default function TitleBar() {
   }
 
   const controls = (
-    <div className="titlebar-controls" style={{ flexDirection: isMac ? 'row-reverse' : 'row' }}>
+    <div className="titlebar-controls">
       <button
         className="titlebar-btn titlebar-btn--close"
         onClick={handleClose}
-        title="Close"
-        aria-label="Close window"
+        title={t('tb_close')}
+        aria-label={t('tb_close')}
       >
         <span className="titlebar-btn-icon">×</span>
       </button>
       <button
         className="titlebar-btn titlebar-btn--maximize"
         onClick={handleMaximize}
-        title={isMaximized ? 'Restore' : 'Maximize'}
-        aria-label={isMaximized ? 'Restore window' : 'Maximize window'}
+        title={isMaximized ? t('tb_restore') : t('tb_maximize')}
+        aria-label={isMaximized ? t('tb_restore') : t('tb_maximize')}
       >
         <span className="titlebar-btn-icon">{isMaximized ? '❐' : '□'}</span>
       </button>
       <button
         className="titlebar-btn titlebar-btn--minimize"
         onClick={handleMinimize}
-        title="Minimize"
-        aria-label="Minimize window"
+        title={t('tb_minimize')}
+        aria-label={t('tb_minimize')}
       >
         <span className="titlebar-btn-icon">−</span>
       </button>
@@ -50,14 +68,23 @@ export default function TitleBar() {
   )
 
   return (
-    <div className="titlebar">
+    <div className={`titlebar ${isMac ? 'titlebar--mac' : 'titlebar--win'}`}>
       {isMac && controls}
       <div className="titlebar-brand">
-        <span className="titlebar-icon">◈</span>
-        <span className="titlebar-title">NetRadar</span>
-        <span className="titlebar-version">v1.0.0</span>
-        <span className="titlebar-separator">|</span>
-        <span className="titlebar-subtitle">NETWORK DIAGNOSTICS</span>
+        <span className="titlebar-icon" aria-hidden="true">
+          <span className="titlebar-icon__screen" />
+          <span className="titlebar-icon__screen titlebar-icon__screen--secondary" />
+        </span>
+        <div className="titlebar-copy">
+          <span className="titlebar-title">{VIEW_TITLES[currentView] || VIEW_TITLES.dashboard}</span>
+          <span className="titlebar-view">{t('app_name')}</span>
+        </div>
+      </div>
+      <div className="titlebar-meta">
+        <span className="titlebar-version">{t('tb_version')}</span>
+        <span className={`titlebar-status titlebar-status--${status}`}>
+          {STATUS_LABELS[status] || STATUS_LABELS.idle}
+        </span>
       </div>
       {!isMac && controls}
     </div>
