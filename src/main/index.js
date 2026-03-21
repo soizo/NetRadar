@@ -8,6 +8,11 @@ const iconPath = isDev
   ? join(process.cwd(), 'resources/icon.png')
   : join(__dirname, '../../resources/icon.png')
 
+// Set dock icon as early as possible on macOS
+if (process.platform === 'darwin') {
+  app.dock.setIcon(nativeImage.createFromPath(iconPath))
+}
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -30,7 +35,6 @@ function createWindow() {
   mainWindow.on('ready-to-show', () => {
     if (process.platform === 'darwin') {
       mainWindow.setWindowButtonVisibility(false)
-      app.dock.setIcon(nativeImage.createFromPath(iconPath))
     }
     mainWindow.show()
   })
