@@ -2,14 +2,16 @@ import { useT } from '../i18n/index.jsx'
 import iconStatus from '../assets/icons/icon-status.png'
 import iconHistory from '../assets/icons/icon-history.png'
 import iconConfig from '../assets/icons/icon-config.png'
+import iconDiag from '../assets/icons/icon-diagnostics.png'
 
 export default function Navbar({ currentView, onNavigate, status = 'idle', config }) {
   const { t } = useT()
 
   const TABS = [
-    { id: 'dashboard', label: t('nav_tab_status'), iconSrc: iconStatus, description: t('nav_tab_status_desc') },
-    { id: 'history', label: t('nav_tab_history'), iconSrc: iconHistory, description: t('nav_tab_history_desc') },
-    { id: 'config', label: t('nav_tab_config'), iconSrc: iconConfig, description: t('nav_tab_config_desc') }
+    { id: 'dashboard',    label: t('nav_tab_status'),  iconSrc: iconStatus,  description: t('nav_tab_status_desc') },
+    { id: 'diagnostics',  label: t('nav_tab_diag'),    iconSrc: iconDiag,    description: t('nav_tab_diag_desc') },
+    { id: 'history',      label: t('nav_tab_history'), iconSrc: iconHistory, description: t('nav_tab_history_desc') },
+    { id: 'config',       label: t('nav_tab_config'),  iconSrc: iconConfig,  description: t('nav_tab_config_desc') }
   ]
 
   const STATUS_LABELS = {

@@ -260,6 +260,89 @@ const en = {
   cfg_btn_save: 'Apply Settings',
   cfg_btn_saved: 'Saved',
   cfg_loading: 'Loading connection properties...',
+
+  // DiagnosticsPanel
+  view_diagnostics: 'Network Diagnostics',
+  path_diagnostics: 'My Network Places > Network Diagnostics',
+  title_diagnostics: 'Network Diagnostics',
+  subtitle_diagnostics: 'Analyse your IP identity, anonymity, censorship bypass, DNS configuration, and local network hardware.',
+  nav_tab_diag: 'Diagnostics',
+  nav_tab_diag_desc: 'Run a full network identity and configuration scan',
+
+  diag_run: 'Run Diagnostics',
+  diag_running: 'Running…',
+  diag_reset: 'Reset',
+  diag_loading: 'Loading…',
+  diag_error: 'Unavailable',
+  diag_unavailable: 'Not available on this platform',
+  diag_na: '—',
+
+  // IP Identity card
+  diag_ip_title: 'IP Identity',
+  diag_ip_address: 'Public IP',
+  diag_ip_country: 'Country',
+  diag_ip_region: 'Region',
+  diag_ip_city: 'City',
+  diag_ip_isp: 'ISP',
+  diag_ip_org: 'Organization',
+  diag_ip_asn: 'ASN',
+
+  // Anonymity & Reputation card
+  diag_rep_title: 'Anonymity & Reputation',
+  diag_rep_type: 'Connection type',
+  diag_rep_vpn: 'VPN',
+  diag_rep_proxy: 'Proxy',
+  diag_rep_tor: 'Tor',
+  diag_rep_datacenter: 'Datacenter',
+  diag_rep_residential: 'Residential',
+  diag_rep_risk: 'Risk score',
+  diag_rep_provider: 'Provider',
+  diag_rep_clean: 'Clean',
+  diag_rep_flagged: 'Flagged',
+
+  // Censorship / GFW card
+  diag_cens_title: 'Censorship & Firewall',
+  diag_cens_gfw_detected: 'Firewall detected',
+  diag_cens_bypassed: 'Bypass active',
+  diag_cens_not_bypassed: 'No bypass detected',
+  diag_cens_no_gfw: 'No censorship detected',
+  diag_cens_yes: 'Yes',
+  diag_cens_no: 'No',
+  diag_cens_reachable: 'Reachable',
+  diag_cens_blocked: 'Blocked',
+  diag_cens_latency: 'Latency',
+
+  // DNS card
+  diag_dns_title: 'DNS Configuration',
+  diag_dns_servers: 'DNS servers',
+  diag_dns_latency: 'Avg. resolution',
+  diag_dns_custom: 'Custom DNS',
+  diag_dns_isp_default: 'ISP default',
+  diag_dns_unknown_provider: 'Unknown provider',
+
+  // Wi-Fi card
+  diag_wifi_title: 'Wi-Fi',
+  diag_wifi_ssid: 'SSID',
+  diag_wifi_bssid: 'BSSID',
+  diag_wifi_signal: 'Signal',
+  diag_wifi_channel: 'Channel',
+  diag_wifi_band: 'Band',
+  diag_wifi_security: 'Security',
+  diag_wifi_speed: 'Link speed',
+  diag_wifi_ethernet: 'Connected via Ethernet or cable — no Wi-Fi data available.',
+
+  // LAN & Router card
+  diag_lan_title: 'LAN & Router',
+  diag_lan_gateway: 'Default gateway',
+  diag_lan_gateway_mac: 'Gateway MAC',
+  diag_lan_manufacturer: 'Router manufacturer',
+  diag_lan_unknown_mfr: 'Unknown',
+  diag_lan_interfaces: 'Network interfaces',
+  diag_lan_name: 'Interface',
+  diag_lan_address: 'IP Address',
+  diag_lan_cidr: 'CIDR',
+  diag_lan_mac: 'MAC',
+  diag_lan_family: 'Family',
 }
 
 // ─── Simplified Chinese (Microsoft-style) ─────────────────────────────────────
@@ -522,6 +605,89 @@ const zhCN = {
   cfg_btn_save: '应用设置',
   cfg_btn_saved: '已保存',
   cfg_loading: '正在加载连接属性...',
+
+  // DiagnosticsPanel
+  view_diagnostics: '网络诊断',
+  path_diagnostics: '网络邻居 > 网络诊断',
+  title_diagnostics: '网络诊断',
+  subtitle_diagnostics: '分析您的 IP 身份、匿名性、翻墙状态、DNS 配置及本地网络硬件信息。',
+  nav_tab_diag: '诊断',
+  nav_tab_diag_desc: '运行完整的网络身份和配置扫描',
+
+  diag_run: '运行诊断',
+  diag_running: '正在运行…',
+  diag_reset: '重置',
+  diag_loading: '正在加载…',
+  diag_error: '不可用',
+  diag_unavailable: '此平台不支持该功能',
+  diag_na: '—',
+
+  // IP Identity card
+  diag_ip_title: 'IP 身份',
+  diag_ip_address: '公网 IP',
+  diag_ip_country: '国家/地区',
+  diag_ip_region: '省/州',
+  diag_ip_city: '城市',
+  diag_ip_isp: '运营商',
+  diag_ip_org: '组织',
+  diag_ip_asn: 'ASN',
+
+  // Anonymity & Reputation card
+  diag_rep_title: '匿名性与信誉',
+  diag_rep_type: '连接类型',
+  diag_rep_vpn: 'VPN',
+  diag_rep_proxy: '代理',
+  diag_rep_tor: 'Tor',
+  diag_rep_datacenter: '数据中心',
+  diag_rep_residential: '家庭宽带',
+  diag_rep_risk: '风险评分',
+  diag_rep_provider: '提供商',
+  diag_rep_clean: '干净',
+  diag_rep_flagged: '已标记',
+
+  // Censorship / GFW card
+  diag_cens_title: '防火墙与审查',
+  diag_cens_gfw_detected: '检测到防火墙',
+  diag_cens_bypassed: '已翻墙',
+  diag_cens_not_bypassed: '未检测到翻墙',
+  diag_cens_no_gfw: '未检测到审查',
+  diag_cens_yes: '是',
+  diag_cens_no: '否',
+  diag_cens_reachable: '可访问',
+  diag_cens_blocked: '已封锁',
+  diag_cens_latency: '延迟',
+
+  // DNS card
+  diag_dns_title: 'DNS 配置',
+  diag_dns_servers: 'DNS 服务器',
+  diag_dns_latency: '平均解析延迟',
+  diag_dns_custom: '自定义 DNS',
+  diag_dns_isp_default: '运营商默认',
+  diag_dns_unknown_provider: '未知提供商',
+
+  // Wi-Fi card
+  diag_wifi_title: 'Wi-Fi',
+  diag_wifi_ssid: 'SSID',
+  diag_wifi_bssid: 'BSSID',
+  diag_wifi_signal: '信号强度',
+  diag_wifi_channel: '信道',
+  diag_wifi_band: '频段',
+  diag_wifi_security: '安全类型',
+  diag_wifi_speed: '链路速率',
+  diag_wifi_ethernet: '通过有线网络连接 — 无 Wi-Fi 数据。',
+
+  // LAN & Router card
+  diag_lan_title: '局域网与路由器',
+  diag_lan_gateway: '默认网关',
+  diag_lan_gateway_mac: '网关 MAC',
+  diag_lan_manufacturer: '路由器厂商',
+  diag_lan_unknown_mfr: '未知',
+  diag_lan_interfaces: '网络接口',
+  diag_lan_name: '接口名称',
+  diag_lan_address: 'IP 地址',
+  diag_lan_cidr: 'CIDR',
+  diag_lan_mac: 'MAC 地址',
+  diag_lan_family: '协议族',
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────

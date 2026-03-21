@@ -10,9 +10,10 @@ export default function TitleBar({ currentView = 'dashboard', status = 'idle' })
   const api = window.api || {}
 
   const VIEW_TITLES = {
-    dashboard: t('view_dashboard'),
-    history: t('view_history'),
-    config: t('view_config')
+    dashboard:   t('view_dashboard'),
+    history:     t('view_history'),
+    config:      t('view_config'),
+    diagnostics: t('view_diagnostics')
   }
 
   const STATUS_LABELS = {

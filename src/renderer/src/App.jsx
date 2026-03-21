@@ -4,11 +4,13 @@ import Navbar from './components/Navbar.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import HistoryPanel from './components/HistoryPanel.jsx'
 import ConfigPanel from './components/ConfigPanel.jsx'
+import DiagnosticsPanel from './components/DiagnosticsPanel.jsx'
 import { useSpeedTest } from './hooks/useSpeedTest.js'
 import { useT } from './i18n/index.jsx'
 import iconStatus from './assets/icons/icon-status.png'
 import iconHistory from './assets/icons/icon-history.png'
 import iconConfig from './assets/icons/icon-config.png'
+import iconDiag from './assets/icons/icon-diagnostics.png'
 
 const DEFAULT_CONFIG = {
   version: '1.0',
@@ -143,6 +145,12 @@ export default function App() {
       path: t('path_config'),
       title: t('title_config'),
       subtitle: t('subtitle_config')
+    },
+    diagnostics: {
+      iconSrc: iconDiag,
+      path: t('path_diagnostics'),
+      title: t('title_diagnostics'),
+      subtitle: t('subtitle_diagnostics')
     }
   }
 
@@ -240,6 +248,9 @@ export default function App() {
                   config={config}
                   onSaveConfig={handleSaveConfig}
                 />
+              )}
+              {currentView === 'diagnostics' && (
+                <DiagnosticsPanel />
               )}
             </div>
           </section>

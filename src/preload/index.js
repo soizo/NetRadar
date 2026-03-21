@@ -7,5 +7,11 @@ contextBridge.exposeInMainWorld('api', {
   windowMinimize: () => ipcRenderer.send('window-minimize'),
   windowMaximize: () => ipcRenderer.send('window-maximize'),
   windowClose: () => ipcRenderer.send('window-close'),
-  platform: process.platform
+  platform: process.platform,
+  diagIpIdentity:   ()    => ipcRenderer.invoke('diag-ip-identity'),
+  diagIpReputation: (ip)  => ipcRenderer.invoke('diag-ip-reputation', ip),
+  diagCensorship:   (cc)  => ipcRenderer.invoke('diag-censorship', cc),
+  diagDns:          ()    => ipcRenderer.invoke('diag-dns'),
+  diagLocalNetwork: ()    => ipcRenderer.invoke('diag-local-network'),
+  diagWifi:         ()    => ipcRenderer.invoke('diag-wifi')
 })

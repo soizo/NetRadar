@@ -1,6 +1,14 @@
 import { app, shell, BrowserWindow, ipcMain, nativeImage } from 'electron'
 import { join } from 'path'
 import { getConfig, saveConfig, getConfigPath } from './configManager.js'
+import {
+  getIpIdentity,
+  getIpReputation,
+  checkCensorshipConnectivity,
+  getDnsInfo,
+  getLocalNetworkInfo,
+  getWifiInfo
+} from './networkDiagnostics.js'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -77,6 +85,13 @@ app.whenReady().then(() => {
   ipcMain.handle('get-config-path', () => {
     return getConfigPath()
   })
+
+  ipcMain.handle('diag-ip-identity',    async ()        => getIpIdentity())
+  ipcMain.handle('diag-ip-reputation',  async (_, ip)   => getIpReputation(ip))
+  ipcMain.handle('diag-censorship',     async (_, cc)   => checkCensorshipConnectivity(cc))
+  ipcMain.handle('diag-dns',            async ()        => getDnsInfo())
+  ipcMain.handle('diag-local-network',  async ()        => getLocalNetworkInfo())
+  ipcMain.handle('diag-wifi',           async ()        => getWifiInfo())
 
   ipcMain.on('window-minimize', (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)
