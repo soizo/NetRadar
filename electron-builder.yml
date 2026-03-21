@@ -6,6 +6,8 @@ directories:
   buildResources: resources
   output: dist
 
+afterPack: scripts/afterPack.cjs
+
 files:
   - out/**/*
   - "!out/**/*.map"
