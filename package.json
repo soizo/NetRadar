@@ -7,7 +7,7 @@
     "name": "soizoktantas",
     "url": "https://github.com/soizoktantas"
   },
-  "license": "NetRadar-OSL-1.0",
+  "license": "Apache-2.0",
   "homepage": "https://github.com/soizoktantas/NetRadar",
   "scripts": {
     "dev": "electron-vite dev",
