@@ -1,12 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-
-function getGaugeColor(value, maxValue) {
-  const ratio = maxValue > 0 ? value / maxValue : 0
-  if (ratio >= 0.75) return '#2f7dff'
-  if (ratio >= 0.4) return '#3ba84f'
-  if (ratio > 0) return '#f0a12b'
-  return '#7e8ba0'
-}
+import { useT } from '../i18n/index.jsx'
+import { gaugeColor, tintColor } from '../utils/uiPalette.js'
 
 function formatDisplayValue(value) {
   if (value === 0 || value == null) return '0.00'
@@ -31,6 +25,7 @@ function buildScale(maxValue) {
 }
 
 export default function SpeedGauge({ value = 0, maxValue = 1000, unit = 'Mbps', label = 'DOWNLOAD', color }) {
+  const { t } = useT()
   const [animatedValue, setAnimatedValue] = useState(0)
   const currentValueRef = useRef(0)
   const frameRef = useRef(null)
@@ -62,7 +57,8 @@ export default function SpeedGauge({ value = 0, maxValue = 1000, unit = 'Mbps', 
   }, [value])
 
   const ratio = Math.min(1, Math.max(0, maxValue > 0 ? animatedValue / maxValue : 0))
-  const gaugeColor = color || getGaugeColor(animatedValue, maxValue)
+  const tone = color || gaugeColor(animatedValue, maxValue)
+  const gaugeHighlight = tintColor(tone, 72)
   const displayVal = formatDisplayValue(animatedValue)
   const displayUnit = formatDisplayUnit(animatedValue, unit)
   const scale = buildScale(maxValue)
@@ -71,11 +67,11 @@ export default function SpeedGauge({ value = 0, maxValue = 1000, unit = 'Mbps', 
     <div className="speed-gauge-wrapper" aria-label={`${label}: ${displayVal} ${displayUnit}`}>
       <div className="speed-gauge-heading">
         <span className="speed-gauge-label">{label}</span>
-        <span className="speed-gauge-cap">Up to {scale[4]} {displayUnit}</span>
+        <span className="speed-gauge-cap">{t('gauge_cap', { value: scale[4], unit: displayUnit })}</span>
       </div>
 
       <div className="speed-gauge-readout">
-        <span className="speed-gauge-value" style={{ color: gaugeColor }}>{displayVal}</span>
+        <span className="speed-gauge-value" style={{ color: tone }}>{displayVal}</span>
         <span className="speed-gauge-unit">{displayUnit}</span>
       </div>
 
@@ -84,7 +80,7 @@ export default function SpeedGauge({ value = 0, maxValue = 1000, unit = 'Mbps', 
           className="speed-gauge-meter-fill"
           style={{
             width: `${ratio * 100}%`,
-            background: `linear-gradient(90deg, ${gaugeColor} 0%, #8cc6ff 100%)`
+            background: `linear-gradient(180deg, ${gaugeHighlight} 0%, ${tone} 100%)`
           }}
         />
       </div>
@@ -100,7 +96,7 @@ export default function SpeedGauge({ value = 0, maxValue = 1000, unit = 'Mbps', 
               style={{
                 height: `${16 + index * 3}px`,
                 background: active
-                  ? `linear-gradient(180deg, #ffffff 0%, ${gaugeColor} 100%)`
+                  ? `linear-gradient(180deg, #ffffff 0%, ${tone} 100%)`
                   : 'linear-gradient(180deg, #eef4fd 0%, #c7d3e6 100%)'
               }}
             />

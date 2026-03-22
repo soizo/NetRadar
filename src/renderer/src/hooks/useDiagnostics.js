@@ -3,7 +3,6 @@ import { detectNat } from '../utils/natDetect.js'
 
 const INITIAL_DATA = {
   ip: null,
-  reputation: null,
   sysContext: null,
   censorship: null,
   dns: null,
@@ -14,7 +13,6 @@ const INITIAL_DATA = {
 
 const INITIAL_LOADING = {
   ip: false,
-  reputation: false,
   sysContext: false,
   censorship: false,
   dns: false,
@@ -25,7 +23,6 @@ const INITIAL_LOADING = {
 
 const INITIAL_ERRORS = {
   ip: null,
-  reputation: null,
   sysContext: null,
   censorship: null,
   dns: null,
@@ -34,7 +31,7 @@ const INITIAL_ERRORS = {
   wifi: null
 }
 
-export function useDiagnostics() {
+export function useDiagnostics(config = null) {
   const [status, setStatus] = useState('idle') // idle | running | complete | error
   const [data, setData] = useState(INITIAL_DATA)
   const [loading, setLoading] = useState(INITIAL_LOADING)
@@ -60,31 +57,17 @@ export function useDiagnostics() {
     setLoading(INITIAL_LOADING)
     setErrors(INITIAL_ERRORS)
 
-    // ── Phase 1: IP Identity (reputation depends on it) ─────────────────────
+    // ── Phase 1: All local — ip, sysContext, localNet, wifi (fully parallel) ─
     setFieldLoading('ip', true)
-    let ipData = null
-    try {
-      ipData = await window.api.diagIpIdentity()
-      setField('ip', ipData)
-    } catch (err) {
-      setFieldError('ip', err?.message || 'error')
-    } finally {
-      setFieldLoading('ip', false)
-    }
-
-    if (abortRef.current) { setStatus('idle'); return }
-
-    // ── Phase 2: Parallel — reputation, sysContext, localNet, wifi ──────────
-    setFieldLoading('reputation', true)
     setFieldLoading('sysContext', true)
     setFieldLoading('localNet', true)
     setFieldLoading('wifi', true)
 
     await Promise.all([
-      window.api.diagIpReputation(ipData?.ip ?? null)
-        .then((v) => setField('reputation', v))
-        .catch((e) => setFieldError('reputation', e?.message || 'error'))
-        .finally(() => setFieldLoading('reputation', false)),
+      window.api.diagIpIdentity()
+        .then((v) => setField('ip', v))
+        .catch((e) => setFieldError('ip', e?.message || 'error'))
+        .finally(() => setFieldLoading('ip', false)),
 
       window.api.diagSysContext()
         .then((v) => setField('sysContext', v))
@@ -104,13 +87,15 @@ export function useDiagnostics() {
 
     if (abortRef.current) { setStatus('idle'); return }
 
-    // ── Phase 3: Parallel — censorship + DNS + NAT ─────────────────────────
+    // ── Phase 2: Network checks — censorship + DNS + NAT ──────────────────
     setFieldLoading('censorship', true)
     setFieldLoading('dns', true)
     setFieldLoading('nat', true)
 
+    const censorshipTargets = config?.diagnostics?.censorship_targets || []
+
     await Promise.all([
-      window.api.diagCensorship(ipData?.countryCode ?? null)
+      window.api.diagCensorship(null, censorshipTargets)
         .then((v) => setField('censorship', v))
         .catch((e) => setFieldError('censorship', e?.message || 'error'))
         .finally(() => setFieldLoading('censorship', false)),
@@ -127,7 +112,7 @@ export function useDiagnostics() {
     ])
 
     setStatus('complete')
-  }, [setField, setFieldLoading, setFieldError])
+  }, [config, setField, setFieldLoading, setFieldError])
 
   const reset = useCallback(() => {
     abortRef.current = true

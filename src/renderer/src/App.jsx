@@ -4,49 +4,26 @@ import Navbar from './components/Navbar.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import HistoryPanel from './components/HistoryPanel.jsx'
 import ConfigPanel from './components/ConfigPanel.jsx'
-import DiagnosticsPanel from './components/DiagnosticsPanel.jsx'
+import NetworkPanel from './components/NetworkPanel.jsx'
+import PrivacyPanel from './components/PrivacyPanel.jsx'
 import { useSpeedTest } from './hooks/useSpeedTest.js'
+import { useDiagnostics } from './hooks/useDiagnostics.js'
 import { useT } from './i18n/index.jsx'
-import iconStatus from './assets/icons/icon-status.png'
+import iconStatus  from './assets/icons/icon-status.png'
 import iconHistory from './assets/icons/icon-history.png'
-import iconConfig from './assets/icons/icon-config.png'
-import iconDiag from './assets/icons/icon-diagnostics.png'
-
-const DEFAULT_CONFIG = {
-  version: '1.0',
-  meta: { author: 'soizoktantas', repo: 'https://github.com/soizoktantas/NetRadar' },
-  settings: { theme: 'xp-terminal', save_history: true, history_limit: 100 },
-  test_settings: { download_size_mb: 25, upload_size_mb: 10, latency_samples: 10, timeout_ms: 30000 },
-  servers: [
-    {
-      id: 'cloudflare',
-      name: 'Cloudflare',
-      location: 'Global CDN',
-      base_url: 'https://speed.cloudflare.com',
-      download_path: '/__down',
-      upload_path: '/__up',
-      latency_path: '/__down?bytes=0',
-      enabled: true,
-      default: true
-    }
-  ],
-  history: []
-}
+import iconConfig  from './assets/icons/icon-config.png'
+import iconDiag    from './assets/icons/icon-diagnostics.png'
+import iconPrivacy from './assets/icons/icon-privacy.png'
+import { cloneConfig, DEFAULT_CONFIG } from '../../shared/appConfig.js'
 
 export default function App() {
-  const { t } = useT()
+  const { t, setLang } = useT()
   const [config, setConfig] = useState(null)
   const [currentView, setCurrentView] = useState('dashboard')
   const [configLoading, setConfigLoading] = useState(true)
 
-  const {
-    status,
-    progress,
-    results,
-    logs,
-    startTest,
-    cancelTest
-  } = useSpeedTest()
+  const { status, progress, results, logs, startTest, cancelTest } = useSpeedTest()
+  const diag = useDiagnostics(config)
 
   const savedResultRef = useRef(null)
   const viewBodyRef = useRef(null)
@@ -57,19 +34,27 @@ export default function App() {
         const api = window.api
         if (api && typeof api.getConfig === 'function') {
           const cfg = await api.getConfig()
-          setConfig(cfg || DEFAULT_CONFIG)
+          const finalConfig = cfg || cloneConfig(DEFAULT_CONFIG)
+          setLang(finalConfig?.settings?.language || DEFAULT_CONFIG.settings.language)
+          setConfig(finalConfig)
         } else {
-          setConfig(DEFAULT_CONFIG)
+          setConfig(cloneConfig(DEFAULT_CONFIG))
         }
       } catch (err) {
         console.error('Failed to load config:', err)
-        setConfig(DEFAULT_CONFIG)
+        setConfig(cloneConfig(DEFAULT_CONFIG))
       } finally {
         setConfigLoading(false)
       }
     }
     loadConfig()
-  }, [])
+
+    // macOS menu: Preferences (Cmd+,) → navigate to settings
+    const api = window.api
+    if (api && typeof api.onMenuNavigate === 'function') {
+      api.onMenuNavigate((_, view) => setCurrentView(view))
+    }
+  }, [setLang])
 
   const handleSaveConfig = useCallback(async (newConfig) => {
     setConfig(newConfig)
@@ -78,10 +63,26 @@ export default function App() {
       if (api && typeof api.saveConfig === 'function') {
         await api.saveConfig(newConfig)
       }
+      setLang(newConfig?.settings?.language || DEFAULT_CONFIG.settings.language)
     } catch (err) {
       console.error('Failed to save config:', err)
     }
-  }, [])
+  }, [setLang])
+
+  const handleResetConfig = useCallback(async () => {
+    try {
+      const api = window.api
+      if (!api || typeof api.resetConfig !== 'function') return
+
+      const result = await api.resetConfig()
+      if (result?.success && result.config) {
+        setLang(result.config?.settings?.language || DEFAULT_CONFIG.settings.language)
+        setConfig(result.config)
+      }
+    } catch (err) {
+      console.error('Failed to reset config:', err)
+    }
+  }, [setLang])
 
   const handleTestComplete = useCallback(async (testResults) => {
     if (!config) return
@@ -103,8 +104,7 @@ export default function App() {
     const limit = config.settings?.history_limit ?? 100
     const history = Array.isArray(config.history) ? config.history : []
     const newHistory = [...history, historyEntry].slice(-limit)
-    const newConfig = { ...config, history: newHistory }
-    await handleSaveConfig(newConfig)
+    await handleSaveConfig({ ...config, history: newHistory })
   }, [config, handleSaveConfig])
 
   useEffect(() => {
@@ -128,107 +128,98 @@ export default function App() {
 
   const handleClearHistory = useCallback(async () => {
     if (!config) return
-    const newConfig = { ...config, history: [] }
-    await handleSaveConfig(newConfig)
+    await handleSaveConfig({ ...config, history: [] })
   }, [config, handleSaveConfig])
 
   const VIEW_META = {
-    dashboard: {
-      iconSrc: iconStatus,
-      path: t('path_dashboard'),
-      title: t('title_dashboard'),
-      subtitle: t('subtitle_dashboard')
-    },
-    history: {
-      iconSrc: iconHistory,
-      path: t('path_history'),
-      title: t('title_history'),
-      subtitle: t('subtitle_history')
-    },
-    config: {
-      iconSrc: iconConfig,
-      path: t('path_config'),
-      title: t('title_config'),
-      subtitle: t('subtitle_config')
-    },
-    diagnostics: {
-      iconSrc: iconDiag,
-      path: t('path_diagnostics'),
-      title: t('title_diagnostics'),
-      subtitle: t('subtitle_diagnostics')
-    }
+    dashboard: { iconSrc: iconStatus,  title: t('title_dashboard') },
+    network:   { iconSrc: iconDiag,    title: t('title_network') },
+    privacy:   { iconSrc: iconPrivacy, title: t('title_privacy') },
+    history:   { iconSrc: iconHistory, title: t('title_history') },
+    config:    { iconSrc: iconConfig,  title: t('title_config') }
   }
 
   const STATUS_COPY = {
-    idle: t('sc_idle'),
-    latency: t('sc_latency'),
+    idle:     t('sc_idle'),
+    latency:  t('sc_latency'),
     download: t('sc_download'),
-    upload: t('sc_upload'),
-    scoring: t('sc_scoring'),
+    upload:   t('sc_upload'),
+    scoring:  t('sc_scoring'),
     complete: t('sc_complete'),
-    error: t('sc_error')
+    error:    t('sc_error')
   }
 
-  const viewMeta = VIEW_META[currentView] || VIEW_META.dashboard
-  const statusCopy = STATUS_COPY[status] || STATUS_COPY.idle
-  const isRunning = ['latency', 'download', 'upload', 'scoring'].includes(status)
+  const DIAG_COPY = {
+    idle:     t('sc_diag_idle'),
+    running:  t('sc_diag_running'),
+    complete: t('sc_diag_complete'),
+    error:    t('sc_error')
+  }
+
+  const VIEW_PATHS = config?.ui?.view_paths || DEFAULT_CONFIG.ui.view_paths
+
+  const [addressValue, setAddressValue] = useState(VIEW_PATHS[currentView] || '')
+
+  useEffect(() => {
+    setAddressValue(VIEW_PATHS[currentView] || '')
+  }, [currentView, VIEW_PATHS])
+
+  function handleAddressGo(e) {
+    e.preventDefault()
+    const normalized = addressValue.trim().toLowerCase()
+    const match = Object.entries(VIEW_PATHS).find(([, path]) =>
+      path.toLowerCase() === normalized || normalized.endsWith(path.toLowerCase().split('\\').pop())
+    )
+    if (match) setCurrentView(match[0])
+    else {
+      const candidate = addressValue.trim()
+      try {
+        const external = /^[a-z]+:\/\//i.test(candidate) ? new URL(candidate) : new URL(`https://${candidate}`)
+        window.open(external.toString(), '_blank', 'noopener')
+      } catch {
+        setAddressValue(VIEW_PATHS[currentView] || '')
+      }
+    }
+  }
+
+  const viewMeta     = VIEW_META[currentView] || VIEW_META.dashboard
+  const isDiagView   = currentView === 'network' || currentView === 'privacy'
+  const statusCopy   = isDiagView ? (DIAG_COPY[diag.status] || DIAG_COPY.idle) : (STATUS_COPY[status] || STATUS_COPY.idle)
+  const isRunning    = isDiagView ? diag.status === 'running' : ['latency', 'download', 'upload', 'scoring'].includes(status)
+  const activeStatus = isDiagView ? diag.status : status
 
   if (configLoading) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-window">
-          <div className="loading-window__title">{t('app_name')}</div>
-          <div className="loading-window__body">
-            <div className="loading-window__badge">{t('loading_badge')}</div>
-            <div className="loading-window__bar">
-              <span className="loading-window__bar-fill" />
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    return <div className="loading-screen" aria-hidden="true" />
   }
 
   return (
     <div className="app-shell">
-      <TitleBar currentView={currentView} status={status} />
+      <TitleBar appTitle={config?.app?.titlebar_title || config?.app?.name || DEFAULT_CONFIG.app.name} />
       <div className="app-workspace">
-        <Navbar
-          currentView={currentView}
-          onNavigate={setCurrentView}
-          status={status}
-          config={config}
-        />
+        <Navbar currentView={currentView} onNavigate={setCurrentView} status={status} />
         <main className="app-content">
-          <div className="explorer-toolbar">
-            <div className="explorer-toolbar__field">
-              <span className="explorer-toolbar__label">{t('toolbar_address')}</span>
-              <div className="explorer-toolbar__value">{viewMeta.path}</div>
-            </div>
-            <div className={`explorer-toolbar__status explorer-toolbar__status--${status}`}>
-              <span className={`status-led status-led--${status} ${isRunning ? 'blink' : ''}`} />
-              {statusCopy}
-            </div>
-          </div>
-
           <section className="content-window">
-            <header className="view-header">
-              <div className="view-header__icon" aria-hidden="true">
-                <img src={viewMeta.iconSrc} alt="" className="view-header__icon-img" />
+            <div className="view-strip">
+              <img src={viewMeta.iconSrc} alt="" className="view-strip__icon" aria-hidden="true" />
+              <span className="view-strip__title">{viewMeta.title}</span>
+              <div className={`view-strip__status view-strip__status--${activeStatus}`}>
+                <span className={`status-led status-led--${activeStatus} ${isRunning ? 'blink' : ''}`} />
+                <span>{statusCopy}</span>
               </div>
-              <div className="view-header__copy">
-                <div className="view-header__eyebrow">{t('app_name')}</div>
-                <h1 className="view-header__title">{viewMeta.title}</h1>
-                <p className="view-header__subtitle">{viewMeta.subtitle}</p>
+            </div>
+
+            <form className="explorer-toolbar" onSubmit={handleAddressGo}>
+              <div className="explorer-toolbar__field">
+                <input
+                  className="explorer-toolbar__input"
+                  value={addressValue}
+                  onChange={e => setAddressValue(e.target.value)}
+                  aria-label={t('toolbar_address')}
+                  spellCheck={false}
+                />
+                <button type="submit" className="explorer-toolbar__go">{t('toolbar_go')}</button>
               </div>
-              <div className={`view-header__status view-header__status--${status}`}>
-                <span className={`status-led status-led--${status} ${isRunning ? 'blink' : ''}`} />
-                <div className="view-header__status-copy">
-                  <strong>{t('toolbar_conn_state')}</strong>
-                  <span>{statusCopy}</span>
-                </div>
-              </div>
-            </header>
+            </form>
 
             <div className="view-body" ref={viewBodyRef}>
               {currentView === 'dashboard' && (
@@ -242,6 +233,26 @@ export default function App() {
                   onCancelTest={cancelTest}
                 />
               )}
+              {currentView === 'network' && (
+                <NetworkPanel
+                  data={diag.data}
+                  loading={diag.loading}
+                  errors={diag.errors}
+                  status={diag.status}
+                  run={diag.run}
+                  reset={diag.reset}
+                />
+              )}
+              {currentView === 'privacy' && (
+                <PrivacyPanel
+                  data={diag.data}
+                  loading={diag.loading}
+                  errors={diag.errors}
+                  status={diag.status}
+                  run={diag.run}
+                  reset={diag.reset}
+                />
+              )}
               {currentView === 'history' && (
                 <HistoryPanel
                   history={config?.history || []}
@@ -252,10 +263,9 @@ export default function App() {
                 <ConfigPanel
                   config={config}
                   onSaveConfig={handleSaveConfig}
+                  onResetConfig={handleResetConfig}
+                  appVersion={config?.version || ''}
                 />
-              )}
-              {currentView === 'diagnostics' && (
-                <DiagnosticsPanel />
               )}
             </div>
           </section>

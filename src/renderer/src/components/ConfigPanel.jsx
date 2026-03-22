@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useT, SUPPORTED_LANGS } from '../i18n/index.jsx'
 import iconConfig from '../assets/icons/icon-config.png'
+import CustomSelect from './CustomSelect.jsx'
 
 const EMPTY_SERVER = {
   id: '',
@@ -18,7 +19,7 @@ function generateId(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `server-${Date.now()}`
 }
 
-export default function ConfigPanel({ config, onSaveConfig }) {
+export default function ConfigPanel({ config, onSaveConfig, onResetConfig, appVersion = '' }) {
   const { t, lang, setLang } = useT()
   const [localConfig, setLocalConfig] = useState(null)
   const [saved, setSaved] = useState(false)
@@ -47,12 +48,12 @@ export default function ConfigPanel({ config, onSaveConfig }) {
     fetchPath()
   }, [config])
 
-  function handleRevealConfig() {
+  async function handleRevealConfig() {
     if (!configPath) return
     try {
-      const { shell } = window.require?.('electron') || {}
-      if (shell?.showItemInFolder) {
-        shell.showItemInFolder(configPath)
+      const api = window.api
+      if (api?.revealConfigPath) {
+        await api.revealConfigPath()
       }
     } catch {}
   }
@@ -68,6 +69,13 @@ export default function ConfigPanel({ config, onSaveConfig }) {
     setLocalConfig(prev => ({
       ...prev,
       settings: { ...prev.settings, [key]: value }
+    }))
+  }
+
+  function handleDiagnosticsSettingChange(key, value) {
+    setLocalConfig(prev => ({
+      ...prev,
+      diagnostics: { ...prev.diagnostics, [key]: value }
     }))
   }
 
@@ -161,6 +169,11 @@ export default function ConfigPanel({ config, onSaveConfig }) {
     }))
   }
 
+  async function handleResetConfigToDefault() {
+    if (!onResetConfig) return
+    await onResetConfig()
+  }
+
   if (!localConfig) {
     return <div className="config-loading">{t('cfg_loading')}</div>
   }
@@ -170,6 +183,12 @@ export default function ConfigPanel({ config, onSaveConfig }) {
   const defaultServer = servers.find(server => server.default)
   const ts = localConfig.test_settings || {}
   const settings = localConfig.settings || {}
+  const diagnostics = localConfig.diagnostics || {}
+  const booleanOptions = [
+    { value: 'true', label: t('cfg_opt_enabled') },
+    { value: 'false', label: t('cfg_opt_disabled') }
+  ]
+  const languageOptions = SUPPORTED_LANGS.map((entry) => ({ value: entry.value, label: entry.label }))
 
   return (
     <div className="config-panel">
@@ -190,6 +209,10 @@ export default function ConfigPanel({ config, onSaveConfig }) {
             <div className="properties-banner-meta__item">
               <span>{t('cfg_location')}</span>
               <strong>{defaultServer?.location || t('cfg_unknown')}</strong>
+            </div>
+            <div className="properties-banner-meta__item">
+              <span>{t('cfg_version')}</span>
+              <strong>{appVersion || t('diag_na')}</strong>
             </div>
           </div>
         </div>
@@ -221,12 +244,17 @@ export default function ConfigPanel({ config, onSaveConfig }) {
             <div className="panel-header">{t('cfg_file_title')}</div>
             <div className="panel-body config-path-section">
               <div className="config-path-label">{t('cfg_file_location')}</div>
-              <code className="config-path-value">{configPath || t('loading_badge')}</code>
-              {configPath && (
-                <button className="btn-secondary" onClick={handleRevealConfig}>
-                  {t('cfg_open_explorer')}
+              <input type="text" readOnly className="config-path-value" value={configPath || ''} placeholder={t('loading_badge')} />
+              <div className="config-path-actions">
+                {configPath && (
+                  <button className="btn-secondary" onClick={handleRevealConfig}>
+                    {t('cfg_open_explorer')}
+                  </button>
+                )}
+                <button className="btn-secondary btn-secondary--danger" onClick={handleResetConfigToDefault}>
+                  {t('cfg_reset_file_default')}
                 </button>
-              )}
+              </div>
             </div>
           </section>
         </aside>
@@ -432,13 +460,11 @@ export default function ConfigPanel({ config, onSaveConfig }) {
                 <div className="form-grid">
                   <div className="form-field">
                     <label className="form-label">{t('cfg_save_history')}</label>
-                    <select
+                    <CustomSelect
                       value={settings.save_history ? 'true' : 'false'}
-                      onChange={e => handleSettingChange('save_history', e.target.value === 'true')}
-                    >
-                      <option value="true">{t('cfg_opt_enabled')}</option>
-                      <option value="false">{t('cfg_opt_disabled')}</option>
-                    </select>
+                      onChange={(nextValue) => handleSettingChange('save_history', nextValue === 'true')}
+                      options={booleanOptions}
+                    />
                     <span className="form-hint">{t('cfg_save_history_hint')}</span>
                   </div>
                   <div className="form-field">
@@ -454,15 +480,28 @@ export default function ConfigPanel({ config, onSaveConfig }) {
                   </div>
                   <div className="form-field">
                     <label className="form-label">{t('cfg_language')}</label>
-                    <select
+                    <CustomSelect
                       value={lang}
-                      onChange={e => setLang(e.target.value)}
-                    >
-                      {SUPPORTED_LANGS.map(l => (
-                        <option key={l.value} value={l.value}>{l.label}</option>
-                      ))}
-                    </select>
+                      onChange={(nextValue) => {
+                        setLang(nextValue)
+                        handleSettingChange('language', nextValue)
+                      }}
+                      options={languageOptions}
+                    />
                     <span className="form-hint">{t('cfg_language_hint')}</span>
+                  </div>
+                  <div className="form-field form-field--full">
+                    <label className="form-label">{t('cfg_censorship_urls')}</label>
+                    <textarea
+                      className="config-textarea"
+                      value={(diagnostics.censorship_targets || []).join('\n')}
+                      onChange={(e) => handleDiagnosticsSettingChange(
+                        'censorship_targets',
+                        e.target.value.split('\n').map((line) => line.trim()).filter(Boolean)
+                      )}
+                      placeholder="https://example.com&#10;news.ycombinator.com"
+                    />
+                    <span className="form-hint">{t('cfg_censorship_urls_hint')}</span>
                   </div>
                 </div>
               </div>

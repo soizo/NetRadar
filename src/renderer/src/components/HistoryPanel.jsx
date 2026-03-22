@@ -2,16 +2,7 @@ import { useState } from 'react'
 import { formatSpeed } from '../utils/scoring.js'
 import { useT } from '../i18n/index.jsx'
 import iconHistory from '../assets/icons/icon-history.png'
-
-function gradeColor(grade) {
-  if (!grade || grade === '--') return '#6b7f99'
-  if (grade.startsWith('S')) return '#1f63d0'
-  if (grade.startsWith('A')) return '#2b8a41'
-  if (grade.startsWith('B')) return '#5b8d22'
-  if (grade === 'C') return '#b78517'
-  if (grade === 'D') return '#bb6b17'
-  return '#b04b4b'
-}
+import { gradeColor } from '../utils/uiPalette.js'
 
 function latencyColor(ms) {
   if (!ms) return '#6b7f99'

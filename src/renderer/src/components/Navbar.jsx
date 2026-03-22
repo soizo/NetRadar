@@ -1,33 +1,30 @@
 import { useT } from '../i18n/index.jsx'
-import iconStatus from '../assets/icons/icon-status.png'
+import iconStatus  from '../assets/icons/icon-status.png'
+import iconDiag    from '../assets/icons/icon-diagnostics.png'
+import iconPrivacy from '../assets/icons/icon-privacy.png'
 import iconHistory from '../assets/icons/icon-history.png'
-import iconConfig from '../assets/icons/icon-config.png'
-import iconDiag from '../assets/icons/icon-diagnostics.png'
+import iconConfig  from '../assets/icons/icon-config.png'
 
-export default function Navbar({ currentView, onNavigate, status = 'idle', config }) {
+export default function Navbar({ currentView, onNavigate, status = 'idle' }) {
   const { t } = useT()
 
   const TABS = [
-    { id: 'dashboard',    label: t('nav_tab_status'),  iconSrc: iconStatus,  description: t('nav_tab_status_desc') },
-    { id: 'diagnostics',  label: t('nav_tab_diag'),    iconSrc: iconDiag,    description: t('nav_tab_diag_desc') },
-    { id: 'history',      label: t('nav_tab_history'), iconSrc: iconHistory, description: t('nav_tab_history_desc') },
-    { id: 'config',       label: t('nav_tab_config'),  iconSrc: iconConfig,  description: t('nav_tab_config_desc') }
+    { id: 'dashboard', label: t('nav_tab_status'),  iconSrc: iconStatus,  description: t('nav_tab_status_desc') },
+    { id: 'network',   label: t('nav_tab_network'), iconSrc: iconDiag,    description: t('nav_tab_network_desc') },
+    { id: 'privacy',   label: t('nav_tab_privacy'), iconSrc: iconPrivacy, description: t('nav_tab_privacy_desc') },
+    { id: 'history',   label: t('nav_tab_history'), iconSrc: iconHistory, description: t('nav_tab_history_desc') },
+    { id: 'config',    label: t('nav_tab_config'),  iconSrc: iconConfig,  description: t('nav_tab_config_desc') }
   ]
 
   const STATUS_LABELS = {
-    idle: t('nav_st_idle'),
-    latency: t('nav_st_latency'),
+    idle:     t('nav_st_idle'),
+    latency:  t('nav_st_latency'),
     download: t('nav_st_download'),
-    upload: t('nav_st_upload'),
-    scoring: t('nav_st_scoring'),
+    upload:   t('nav_st_upload'),
+    scoring:  t('nav_st_scoring'),
     complete: t('nav_st_complete'),
-    error: t('nav_st_error')
+    error:    t('nav_st_error')
   }
-
-  const servers = config?.servers || []
-  const enabledServers = servers.filter(server => server.enabled).length
-  const defaultServer = servers.find(server => server.default && server.enabled) || servers.find(server => server.enabled)
-  const historyCount = config?.history?.length || 0
 
   return (
     <aside className="navbar">
@@ -49,43 +46,6 @@ export default function Navbar({ currentView, onNavigate, status = 'idle', confi
               </span>
             </button>
           ))}
-        </div>
-      </section>
-
-      <section className="sidebar-group">
-        <div className="sidebar-group__title">{t('nav_details')}</div>
-        <div className="sidebar-details">
-          <div className="sidebar-detail-row">
-            <span className="sidebar-detail-key">{t('nav_detail_status')}</span>
-            <strong className="sidebar-detail-value">{STATUS_LABELS[status] || STATUS_LABELS.idle}</strong>
-          </div>
-          <div className="sidebar-detail-row">
-            <span className="sidebar-detail-key">{t('nav_detail_servers')}</span>
-            <strong className="sidebar-detail-value">{enabledServers}</strong>
-          </div>
-          <div className="sidebar-detail-row">
-            <span className="sidebar-detail-key">{t('nav_detail_route')}</span>
-            <strong className="sidebar-detail-value">{defaultServer?.name || t('nav_not_set')}</strong>
-          </div>
-          <div className="sidebar-detail-row">
-            <span className="sidebar-detail-key">{t('nav_detail_reports')}</span>
-            <strong className="sidebar-detail-value">{historyCount}</strong>
-          </div>
-        </div>
-      </section>
-
-      <section className="sidebar-group sidebar-group--places">
-        <div className="sidebar-group__title">{t('nav_places')}</div>
-        <div className="sidebar-places">
-          <button className="sidebar-place sidebar-place--link" onClick={() => onNavigate('diagnostics')}>
-            {t('nav_place_network')}
-          </button>
-          <button className="sidebar-place sidebar-place--link" onClick={() => onNavigate('history')}>
-            {t('nav_place_entire')}
-          </button>
-          <button className="sidebar-place sidebar-place--link" onClick={() => onNavigate('config')}>
-            {t('nav_place_panel')}
-          </button>
         </div>
       </section>
 

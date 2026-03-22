@@ -8,82 +8,14 @@ import iconDns      from '../assets/icons/icon-dns.png'
 import iconWifi     from '../assets/icons/icon-wifi.png'
 import iconRouter   from '../assets/icons/icon-router.png'
 import iconConfig   from '../assets/icons/icon-config.png'
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function dot(loading, value, errorMsg) {
-  if (loading) return 'loading'
-  if (errorMsg) return 'error'
-  if (value == null) return 'idle'
-  return 'ok'
-}
-
-function CardDot({ state }) {
-  const cls = {
-    loading: 'diag-card__dot diag-card__dot--loading',
-    ok:      'diag-card__dot diag-card__dot--ok',
-    warn:    'diag-card__dot diag-card__dot--warn',
-    error:   'diag-card__dot diag-card__dot--error',
-    idle:    'diag-card__dot'
-  }[state] || 'diag-card__dot'
-  return <span className={cls} />
-}
-
-function Row({ label, children, valueClass }) {
-  return (
-    <div className="diag-row">
-      <span className="diag-row__label">{label}</span>
-      <span className={`diag-row__value ${valueClass || ''}`}>{children}</span>
-    </div>
-  )
-}
-
-function CardShell({ icon, title, dotState, children }) {
-  return (
-    <div className="diag-card">
-      <div className="diag-card__header">
-        <img className="diag-card__icon" src={icon} alt="" aria-hidden="true" />
-        <span className="diag-card__title">{title}</span>
-        <CardDot state={dotState} />
-      </div>
-      <div className="diag-card__body">{children}</div>
-    </div>
-  )
-}
-
-// ─── Signal bar ───────────────────────────────────────────────────────────────
-
-function SignalBars({ percent }) {
-  const levels = [20, 40, 60, 80, 100]
-  return (
-    <span className="diag-signal">
-      {levels.map((threshold, i) => (
-        <span
-          key={i}
-          className={`diag-signal__bar ${percent >= threshold ? 'diag-signal__bar--lit' : ''}`}
-          style={{ height: `${(i + 1) * 3}px` }}
-        />
-      ))}
-    </span>
-  )
-}
-
-// ─── Risk bar ─────────────────────────────────────────────────────────────────
-
-function RiskBar({ score }) {
-  const color = score >= 75 ? '#b24a4a' : score >= 40 ? '#b98518' : '#2b8a41'
-  return (
-    <div className="diag-risk-bar">
-      <div className="diag-risk-bar__track">
-        <div
-          className="diag-risk-bar__fill"
-          style={{ width: `${score}%`, background: color }}
-        />
-      </div>
-      <span className="diag-risk-bar__label" style={{ color }}>{score}</span>
-    </div>
-  )
-}
+import {
+  DiagCardShell,
+  DiagnosticsEmptyState,
+  DiagnosticsRunBar,
+  DiagRiskBar,
+  DiagRow,
+  DiagSignalBars
+} from './DiagnosticsShared.jsx'
 
 // ─── IP Identity ──────────────────────────────────────────────────────────────
 
@@ -92,22 +24,22 @@ function IpCard({ data, loading, error }) {
   const state = loading ? 'loading' : error ? 'error' : data ? 'ok' : 'idle'
 
   return (
-    <CardShell icon={iconIp} title={t('diag_ip_title')} dotState={state}>
+    <DiagCardShell icon={iconIp} title={t('diag_ip_title')} dotState={state}>
       {loading && <div className="diag-state">{t('diag_loading')}</div>}
       {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && !error && !data && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && data && (
         <>
-          <Row label={t('diag_ip_address')} valueClass="diag-row__value--blue">{data.ip}</Row>
-          <Row label={t('diag_ip_country')}>{data.country || t('diag_na')}</Row>
-          <Row label={t('diag_ip_region')}>{data.region || t('diag_na')}</Row>
-          <Row label={t('diag_ip_city')}>{data.city || t('diag_na')}</Row>
-          <Row label={t('diag_ip_isp')}>{data.isp || t('diag_na')}</Row>
-          <Row label={t('diag_ip_org')}>{data.org || t('diag_na')}</Row>
-          <Row label={t('diag_ip_asn')} valueClass="diag-row__value--muted">{data.asn || t('diag_na')}</Row>
+          <DiagRow label={t('diag_ip_address')} valueClass="diag-row__value--blue">{data.ip}</DiagRow>
+          <DiagRow label={t('diag_ip_country')}>{data.country || t('diag_na')}</DiagRow>
+          <DiagRow label={t('diag_ip_region')}>{data.region || t('diag_na')}</DiagRow>
+          <DiagRow label={t('diag_ip_city')}>{data.city || t('diag_na')}</DiagRow>
+          <DiagRow label={t('diag_ip_isp')}>{data.isp || t('diag_na')}</DiagRow>
+          <DiagRow label={t('diag_ip_org')}>{data.org || t('diag_na')}</DiagRow>
+          <DiagRow label={t('diag_ip_asn')} valueClass="diag-row__value--muted">{data.asn || t('diag_na')}</DiagRow>
         </>
       )}
-    </CardShell>
+    </DiagCardShell>
   )
 }
 
@@ -129,19 +61,19 @@ function RepCard({ data, loading, error, ipData }) {
   const state = loading ? 'loading' : error ? 'error' : (data || ipData) ? (hasAnonymity ? 'warn' : 'ok') : 'idle'
 
   return (
-    <CardShell icon={iconPrivacy} title={t('diag_rep_title')} dotState={state}>
+    <DiagCardShell icon={iconPrivacy} title={t('diag_rep_title')} dotState={state}>
       {loading && <div className="diag-state">{t('diag_loading')}</div>}
       {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && !data && !ipData && !error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && (data || ipData) && (
         <>
-          <Row label={t('diag_rep_type')}>
+          <DiagRow label={t('diag_rep_type')}>
             {isDc ? t('diag_rep_datacenter') : t('diag_rep_residential')}
             {isVpn ? ` / ${t('diag_rep_vpn')}` : ''}
             {isTor ? ` / ${t('diag_rep_tor')}` : ''}
             {isProxy && !isVpn ? ` / ${t('diag_rep_proxy')}` : ''}
-          </Row>
-          <Row label="">
+          </DiagRow>
+          <DiagRow label="">
             <div className="diag-badges">
               {isVpn   && <span className="diag-badge diag-badge--warn">{t('diag_rep_vpn')}</span>}
               {isTor   && <span className="diag-badge diag-badge--error">{t('diag_rep_tor')}</span>}
@@ -149,16 +81,16 @@ function RepCard({ data, loading, error, ipData }) {
               {isDc    && <span className="diag-badge diag-badge--warn">{t('diag_rep_datacenter')}</span>}
               {!hasAnonymity && <span className="diag-badge diag-badge--active">{t('diag_rep_clean')}</span>}
             </div>
-          </Row>
+          </DiagRow>
           {riskScore != null && (
-            <Row label={t('diag_rep_risk')}>
-              <RiskBar score={riskScore} />
-            </Row>
+            <DiagRow label={t('diag_rep_risk')}>
+              <DiagRiskBar score={riskScore} />
+            </DiagRow>
           )}
-          {provider && <Row label={t('diag_rep_provider')}>{provider}</Row>}
+          {provider && <DiagRow label={t('diag_rep_provider')}>{provider}</DiagRow>}
         </>
       )}
-    </CardShell>
+    </DiagCardShell>
   )
 }
 
@@ -173,7 +105,7 @@ function CensCard({ data, loading, error }) {
     : 'idle'
 
   return (
-    <CardShell icon={iconCens} title={t('diag_cens_title')} dotState={state}>
+    <DiagCardShell icon={iconCens} title={t('diag_cens_title')} dotState={state}>
       {loading && <div className="diag-state">{t('diag_loading')}</div>}
       {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && data && (
@@ -217,7 +149,7 @@ function CensCard({ data, loading, error }) {
           )}
         </>
       )}
-    </CardShell>
+    </DiagCardShell>
   )
 }
 
@@ -228,7 +160,7 @@ function DnsCard({ data, loading, error }) {
   const state = loading ? 'loading' : error ? 'error' : data ? 'ok' : 'idle'
 
   return (
-    <CardShell icon={iconDns} title={t('diag_dns_title')} dotState={state}>
+    <DiagCardShell icon={iconDns} title={t('diag_dns_title')} dotState={state}>
       {loading && <div className="diag-state">{t('diag_loading')}</div>}
       {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && data && (
@@ -243,17 +175,17 @@ function DnsCard({ data, loading, error }) {
               </div>
             ))}
           </div>
-          <Row label={t('diag_dns_latency')}>
+          <DiagRow label={t('diag_dns_latency')}>
             {data.avgLatencyMs != null ? `${data.avgLatencyMs} ms` : t('diag_na')}
-          </Row>
-          <Row label={t('diag_dns_custom')}>
+          </DiagRow>
+          <DiagRow label={t('diag_dns_custom')}>
             <span className={data.customDns ? 'diag-row__value--ok' : 'diag-row__value--muted'}>
               {data.customDns ? t('diag_cens_yes') : t('diag_dns_isp_default')}
             </span>
-          </Row>
+          </DiagRow>
         </>
       )}
-    </CardShell>
+    </DiagCardShell>
   )
 }
 
@@ -264,7 +196,7 @@ function WifiCard({ data, loading, error }) {
   const state = loading ? 'loading' : error ? 'error' : data === undefined ? 'idle' : data === null ? 'idle' : 'ok'
 
   return (
-    <CardShell icon={iconWifi} title={t('diag_wifi_title')} dotState={state}>
+    <DiagCardShell icon={iconWifi} title={t('diag_wifi_title')} dotState={state}>
       {loading && <div className="diag-state">{t('diag_loading')}</div>}
       {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && !error && data === null && (
@@ -272,26 +204,26 @@ function WifiCard({ data, loading, error }) {
       )}
       {!loading && !error && data && (
         <>
-          <Row label={t('diag_wifi_ssid')} valueClass="diag-row__value--blue">{data.ssid}</Row>
-          {data.bssid && <Row label={t('diag_wifi_bssid')} valueClass="diag-row__value--muted">{data.bssid}</Row>}
-          <Row label={t('diag_wifi_signal')}>
+          <DiagRow label={t('diag_wifi_ssid')} valueClass="diag-row__value--blue">{data.ssid}</DiagRow>
+          {data.bssid && <DiagRow label={t('diag_wifi_bssid')} valueClass="diag-row__value--muted">{data.bssid}</DiagRow>}
+          <DiagRow label={t('diag_wifi_signal')}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <SignalBars percent={data.signalPercent ?? 0} />
+              <DiagSignalBars percent={data.signalPercent ?? 0} />
               <span>{data.signalPercent != null ? `${data.signalPercent}%` : ''}</span>
               {data.rssiDbm != null && (
                 <span style={{ color: 'var(--xp-text-muted)' }}>({data.rssiDbm} dBm)</span>
               )}
             </span>
-          </Row>
-          <Row label={t('diag_wifi_channel')}>{data.channel || t('diag_na')}</Row>
-          <Row label={t('diag_wifi_band')}>{data.band || t('diag_na')}</Row>
-          <Row label={t('diag_wifi_security')}>{data.security || t('diag_na')}</Row>
+          </DiagRow>
+          <DiagRow label={t('diag_wifi_channel')}>{data.channel || t('diag_na')}</DiagRow>
+          <DiagRow label={t('diag_wifi_band')}>{data.band || t('diag_na')}</DiagRow>
+          <DiagRow label={t('diag_wifi_security')}>{data.security || t('diag_na')}</DiagRow>
           {data.linkSpeedMbps != null && (
-            <Row label={t('diag_wifi_speed')}>{data.linkSpeedMbps} Mbps</Row>
+            <DiagRow label={t('diag_wifi_speed')}>{data.linkSpeedMbps} Mbps</DiagRow>
           )}
         </>
       )}
-    </CardShell>
+    </DiagCardShell>
   )
 }
 
@@ -302,22 +234,22 @@ function LanCard({ data, loading, error }) {
   const state = loading ? 'loading' : error ? 'error' : data ? 'ok' : 'idle'
 
   return (
-    <CardShell icon={iconRouter} title={t('diag_lan_title')} dotState={state}>
+    <DiagCardShell icon={iconRouter} title={t('diag_lan_title')} dotState={state}>
       {loading && <div className="diag-state">{t('diag_loading')}</div>}
       {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && data && (
         <>
-          <Row label={t('diag_lan_gateway')} valueClass="diag-row__value--blue">
+          <DiagRow label={t('diag_lan_gateway')} valueClass="diag-row__value--blue">
             {data.gateway?.ip || t('diag_na')}
-          </Row>
+          </DiagRow>
           {data.gateway?.mac && (
-            <Row label={t('diag_lan_gateway_mac')} valueClass="diag-row__value--muted">
+            <DiagRow label={t('diag_lan_gateway_mac')} valueClass="diag-row__value--muted">
               {data.gateway.mac}
-            </Row>
+            </DiagRow>
           )}
-          <Row label={t('diag_lan_manufacturer')}>
+          <DiagRow label={t('diag_lan_manufacturer')}>
             {data.gateway?.manufacturer || t('diag_lan_unknown_mfr')}
-          </Row>
+          </DiagRow>
 
           {data.interfaces?.length > 0 && (
             <div style={{ marginTop: 10 }}>
@@ -348,7 +280,7 @@ function LanCard({ data, loading, error }) {
           )}
         </>
       )}
-    </CardShell>
+    </DiagCardShell>
   )
 }
 
@@ -360,12 +292,12 @@ function SysContextCard({ data, loading, error }) {
   const state = loading ? 'loading' : error ? 'error' : data ? (hasSignal ? 'warn' : 'ok') : 'idle'
 
   return (
-    <CardShell icon={iconConfig} title={t('diag_sys_title')} dotState={state}>
+    <DiagCardShell icon={iconConfig} title={t('diag_sys_title')} dotState={state}>
       {loading && <div className="diag-state">{t('diag_loading')}</div>}
       {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && data && (
         <>
-          <Row label={t('diag_sys_tunnel')}>
+          <DiagRow label={t('diag_sys_tunnel')}>
             {data.tunnelInterfaces?.length > 0
               ? <div className="diag-badges">
                   {data.tunnelInterfaces.map((iface, i) => (
@@ -376,8 +308,8 @@ function SysContextCard({ data, loading, error }) {
                 </div>
               : <span className="diag-row__value--muted">{t('diag_sys_tunnel_none')}</span>
             }
-          </Row>
-          <Row label={t('diag_sys_proxy')}>
+          </DiagRow>
+          <DiagRow label={t('diag_sys_proxy')}>
             {data.hasProxy
               ? <div className="diag-badges">
                   {data.proxySettings?.httpEnabled  && <span className="diag-badge diag-badge--warn">HTTP {data.proxySettings.httpProxy ? `→ ${data.proxySettings.httpProxy}` : ''}</span>}
@@ -386,8 +318,8 @@ function SysContextCard({ data, loading, error }) {
                 </div>
               : <span className="diag-row__value--muted">{t('diag_sys_proxy_none')}</span>
             }
-          </Row>
-          <Row label={t('diag_sys_vpn_apps')}>
+          </DiagRow>
+          <DiagRow label={t('diag_sys_vpn_apps')}>
             {data.vpnProcesses?.length > 0
               ? <div className="diag-badges">
                   {data.vpnProcesses.map((p, i) => (
@@ -396,8 +328,8 @@ function SysContextCard({ data, loading, error }) {
                 </div>
               : <span className="diag-row__value--muted">{t('diag_sys_vpn_none')}</span>
             }
-          </Row>
-          <Row label={t('diag_sys_confidence')}>
+          </DiagRow>
+          <DiagRow label={t('diag_sys_confidence')}>
             <span className={
               data.vpnConfidence === 0 ? 'diag-row__value--muted'
               : data.vpnConfidence === 1 ? 'diag-row__value--warn'
@@ -407,10 +339,10 @@ function SysContextCard({ data, loading, error }) {
                : data.vpnConfidence === 1 ? t('diag_sys_conf_low')
                : t('diag_sys_conf_high')}
             </span>
-          </Row>
+          </DiagRow>
         </>
       )}
-    </CardShell>
+    </DiagCardShell>
   )
 }
 
@@ -425,38 +357,38 @@ function NatCard({ data, loading, error }) {
   const state = loading ? 'loading' : error ? 'error' : data ? (NAT_DOT_STATE[data.type] || 'idle') : 'idle'
 
   return (
-    <CardShell icon={iconCens} title={t('diag_nat_title')} dotState={state}>
+    <DiagCardShell icon={iconCens} title={t('diag_nat_title')} dotState={state}>
       {loading && <div className="diag-state">{t('diag_loading')}</div>}
       {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
       {!loading && data && (
         <>
-          <Row label={t('diag_nat_type')}>
+          <DiagRow label={t('diag_nat_type')}>
             <span className={NAT_TYPE_CLASS[data.type] || ''}>
               {t(NAT_TYPE_LABELS[data.type] || 'diag_nat_unknown')}
             </span>
-          </Row>
+          </DiagRow>
           {data.hasNat !== null && (
-            <Row label="">
+            <DiagRow label="">
               <span className={data.hasNat ? 'diag-badge diag-badge--warn' : 'diag-badge diag-badge--active'}>
                 {data.hasNat ? t('diag_nat_has_nat') : t('diag_nat_no_nat')}
               </span>
-            </Row>
+            </DiagRow>
           )}
           {data.externalIp && (
-            <Row label={t('diag_nat_external_ip')} valueClass="diag-row__value--blue">{data.externalIp}</Row>
+            <DiagRow label={t('diag_nat_external_ip')} valueClass="diag-row__value--blue">{data.externalIp}</DiagRow>
           )}
           {data.externalPort && (
-            <Row label={t('diag_nat_external_port')} valueClass="diag-row__value--muted">{data.externalPort}</Row>
+            <DiagRow label={t('diag_nat_external_port')} valueClass="diag-row__value--muted">{data.externalPort}</DiagRow>
           )}
           {data.hasRelay && (
-            <Row label={t('diag_nat_relay')} valueClass="diag-row__value--warn">{t('diag_cens_yes')}</Row>
+            <DiagRow label={t('diag_nat_relay')} valueClass="diag-row__value--warn">{t('diag_cens_yes')}</DiagRow>
           )}
           {data.udpBlocked && (
-            <Row label={t('diag_nat_udp_blocked')} valueClass="diag-row__value--error">{t('diag_cens_yes')}</Row>
+            <DiagRow label={t('diag_nat_udp_blocked')} valueClass="diag-row__value--error">{t('diag_cens_yes')}</DiagRow>
           )}
         </>
       )}
-    </CardShell>
+    </DiagCardShell>
   )
 }
 
@@ -472,36 +404,24 @@ export default function DiagnosticsPanel() {
 
   return (
     <div className="diagnostics-panel">
-      {/* Run bar */}
-      <div className="diag-run-bar">
-        <button
-          className="btn-primary"
-          onClick={run}
-          disabled={isRunning}
-        >
-          {isRunning ? t('diag_running') : t('diag_run')}
-        </button>
-        {hasRun && !isRunning && (
-          <button className="btn-secondary" onClick={reset}>{t('diag_reset')}</button>
-        )}
-        {isRunning && (
-          <span className="diag-run-bar__status diag-run-bar__status--running">
-            {t('diag_running')}
-          </span>
-        )}
-      </div>
+      <DiagnosticsRunBar
+        isRunning={isRunning}
+        hasRun={hasRun}
+        onRun={run}
+        onReset={reset}
+        runLabel={t('diag_run')}
+        runningLabel={t('diag_running')}
+        resetLabel={t('diag_reset')}
+      />
 
       {/* Idle splash — before first run */}
       {!hasRun && (
-        <div className="diag-idle">
-          <img className="diag-idle__icon" src={iconDiag} alt="" aria-hidden="true" />
-          <p className="diag-idle__text">{t('subtitle_diagnostics')}</p>
-        </div>
+        <DiagnosticsEmptyState icon={iconDiag} text={t('subtitle_diagnostics')} />
       )}
 
       {/* Cards — only shown after run starts */}
       {hasRun && (
-        <>
+        <div className="diag-cards-grid">
           <IpCard
             data={data.ip}
             loading={loading.ip}
@@ -543,7 +463,7 @@ export default function DiagnosticsPanel() {
             loading={loading.localNet}
             error={errors.localNet}
           />
-        </>
+        </div>
       )}
     </div>
   )

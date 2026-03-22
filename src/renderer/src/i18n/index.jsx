@@ -3,8 +3,8 @@ import React, { createContext, useContext, useState, useCallback } from 'react'
 // ─── English ──────────────────────────────────────────────────────────────────
 const en = {
   // App / loading
-  app_name: 'NetRadar Network Connections',
-  loading_badge: 'Preparing diagnostics console',
+  app_name: 'NetRadar',
+  loading_badge: 'Loading…',
 
   // TitleBar
   tb_close: 'Close',
@@ -19,50 +19,49 @@ const en = {
   view_config: 'Connection Properties',
 
   // TitleBar status labels
-  st_idle: 'Ready',
-  st_latency: 'Checking latency',
-  st_download: 'Testing download',
-  st_upload: 'Testing upload',
-  st_scoring: 'Calculating quality',
-  st_complete: 'Last test completed',
-  st_error: 'Test error',
+  st_idle:     'Ready',
+  st_latency:  'Latency',
+  st_download: 'Download',
+  st_upload:   'Upload',
+  st_scoring:  'Scoring',
+  st_complete: 'Done',
+  st_error:    'Error',
 
   // Toolbar
   toolbar_address: 'Address',
+  toolbar_go: 'Go',
   toolbar_conn_state: 'Connection State',
 
-  // View meta — paths
-  path_dashboard: 'My Network Places > Local Area Connection',
-  path_history: 'My Network Places > Connection Reports',
-  path_config: 'My Network Places > Local Area Connection Properties',
-
-  // View meta — titles / subtitles
-  title_dashboard: 'Local Area Connection Status',
-  subtitle_dashboard: 'View current activity, connection quality, and support details for the selected network route.',
-  title_history: 'Connection History',
-  subtitle_history: 'Review saved speed-test reports and compare previous network sessions in a single list view.',
-  title_config: 'Local Area Connection Properties',
-  subtitle_config: 'Choose which servers are enabled and adjust the diagnostic settings used by this connection.',
+  // View meta — titles
+  title_dashboard: 'Speed Test',
+  title_network:   'Network',
+  title_privacy:   'Privacy',
+  title_history:   'History',
+  title_config:    'Settings',
 
   // Status copy
-  sc_idle: 'Connected and ready',
-  sc_latency: 'Checking server response time',
-  sc_download: 'Measuring receive throughput',
-  sc_upload: 'Measuring send throughput',
-  sc_scoring: 'Updating connection score',
-  sc_complete: 'Last diagnostics pass completed',
-  sc_error: 'Last diagnostics pass requires attention',
+  sc_idle:     'Ready',
+  sc_latency:  'Checking latency',
+  sc_download: 'Downloading',
+  sc_upload:   'Uploading',
+  sc_scoring:  'Scoring',
+  sc_complete: 'Complete',
+  sc_error:    'Error',
 
   // Navbar
   nav_tasks: 'Network Tasks',
   nav_details: 'Details',
   nav_places: 'Network Places',
-  nav_tab_status: 'Status',
-  nav_tab_status_desc: 'Open the current connection status window',
-  nav_tab_history: 'History',
-  nav_tab_history_desc: 'Review saved connection reports',
-  nav_tab_config: 'Properties',
-  nav_tab_config_desc: 'Change servers and test parameters',
+  nav_tab_status:      'Speed',
+  nav_tab_status_desc: 'Speed test',
+  nav_tab_network:     'Network',
+  nav_tab_network_desc: 'IP, DNS, Wi-Fi, LAN',
+  nav_tab_privacy:     'Privacy',
+  nav_tab_privacy_desc: 'VPN, Proxy, GFW, NAT',
+  nav_tab_history:     'History',
+  nav_tab_history_desc: 'Past results',
+  nav_tab_config:      'Settings',
+  nav_tab_config_desc: 'Servers & settings',
   nav_st_idle: 'Connected',
   nav_st_latency: 'Diagnosing',
   nav_st_download: 'Downloading',
@@ -78,16 +77,18 @@ const en = {
   nav_place_entire: 'Entire Network',
   nav_place_panel: 'Control Panel',
   nav_local_conn: 'Local Area Connection',
+  nav_current_directory: 'Current Directory',
+  nav_current_directory_label: 'Working folder',
   nav_not_set: 'Not set',
 
   // Dashboard — phase labels
-  phase_latency: 'Checking server response time',
-  phase_download: 'Receiving test data from the selected server',
-  phase_upload: 'Sending test data back to the selected server',
-  phase_scoring: 'Calculating the final connection quality report',
-  phase_complete: 'This connection is connected and the latest report is ready',
-  phase_error: 'The last connection test ended with an error',
-  phase_idle: 'This connection is connected and ready for a new test',
+  phase_latency:  'Checking latency',
+  phase_download: 'Downloading',
+  phase_upload:   'Uploading',
+  phase_scoring:  'Scoring',
+  phase_complete: 'Complete',
+  phase_error:    'Error',
+  phase_idle:     'Ready',
 
   // Dashboard panels
   panel_general: 'General',
@@ -132,6 +133,7 @@ const en = {
   gauge_upload_sub: 'Upload throughput',
   gauge_label_dl: 'DOWNLOAD',
   gauge_label_ul: 'UPLOAD',
+  gauge_cap: 'Up to {value} {unit}',
 
   // Dashboard — support panel
   lan_icon: 'LAN',
@@ -161,8 +163,8 @@ const en = {
 
   // ScoreBoard
   sb_grade: 'Grade',
-  sb_awaiting: 'Awaiting a test run',
-  sb_note: 'Higher scores indicate faster throughput and more stable latency.',
+  sb_awaiting: 'Run a test first',
+  sb_note: 'Higher = faster & more stable.',
   sb_dl: 'Download',
   sb_ul: 'Upload',
   sb_latency: 'Latency',
@@ -173,6 +175,9 @@ const en = {
   term_completed: 'Completed',
   term_error: 'Error',
   term_events: '{n} events',
+  term_col_time: 'Time',
+  term_col_type: 'Type',
+  term_col_message: 'Details',
   term_empty_title: 'No activity yet',
   term_empty_text: 'Start a test to populate connection events and diagnostics output.',
   term_monitoring: 'Monitoring current traffic…',
@@ -210,7 +215,9 @@ const en = {
   cfg_saved_reports: 'Saved reports',
   cfg_file_title: 'Configuration File',
   cfg_file_location: 'Location',
+  cfg_version: 'Version',
   cfg_open_explorer: 'Open in Explorer',
+  cfg_reset_file_default: 'Reset to Default',
   cfg_servers_title: 'Speed Test Servers',
   cfg_servers_intro: 'This connection uses the following test routes. Choose which endpoints are enabled and which one opens as the preferred route.',
   cfg_server_default: 'Default',
@@ -256,7 +263,9 @@ const en = {
   cfg_history_limit_hint: 'Oldest items are trimmed when the limit is reached.',
   cfg_language: 'Language',
   cfg_language_hint: 'Interface display language.',
-  cfg_attribution: 'NetRadar v1.0.0 · XP-style connection manager',
+  cfg_censorship_urls: 'Censorship test URLs',
+  cfg_censorship_urls_hint: 'One URL or domain per line. These are added to the built-in firewall reachability checks.',
+  cfg_attribution: 'NetRadar v1.0.0',
   cfg_btn_save: 'Apply Settings',
   cfg_btn_saved: 'Saved',
   cfg_loading: 'Loading connection properties...',
@@ -277,26 +286,21 @@ const en = {
   diag_unavailable: 'Not available on this platform',
   diag_na: '—',
 
-  // IP Identity card
-  diag_ip_title: 'IP Identity',
-  diag_ip_address: 'Public IP',
-  diag_ip_country: 'Country',
-  diag_ip_region: 'Region',
-  diag_ip_city: 'City',
-  diag_ip_isp: 'ISP',
-  diag_ip_org: 'Organization',
-  diag_ip_asn: 'ASN',
+  // IP Identity card (local)
+  diag_ip_title: 'This Device',
+  diag_ip_hostname: 'Hostname',
+  diag_ip_platform: 'OS',
+  diag_ip_os: 'OS Version',
+  diag_ip_arch: 'Architecture',
+  diag_ip_local_addrs: 'Network Interfaces',
 
-  // Anonymity & Reputation card
-  diag_rep_title: 'Anonymity & Reputation',
-  diag_rep_type: 'Connection type',
+  // Anonymity Status card (local detection)
+  diag_rep_title: 'Anonymity Status',
+  diag_rep_status: 'Detected signals',
   diag_rep_vpn: 'VPN',
   diag_rep_proxy: 'Proxy',
+  diag_rep_tunnel: 'Tunnel',
   diag_rep_tor: 'Tor',
-  diag_rep_datacenter: 'Datacenter',
-  diag_rep_residential: 'Residential',
-  diag_rep_risk: 'Risk score',
-  diag_rep_provider: 'Provider',
   diag_rep_clean: 'Clean',
   diag_rep_flagged: 'Flagged',
 
@@ -325,11 +329,12 @@ const en = {
   diag_wifi_ssid: 'SSID',
   diag_wifi_bssid: 'BSSID',
   diag_wifi_signal: 'Signal',
+  diag_wifi_rssi: 'RSSI',
   diag_wifi_channel: 'Channel',
   diag_wifi_band: 'Band',
   diag_wifi_security: 'Security',
   diag_wifi_speed: 'Link speed',
-  diag_wifi_ethernet: 'Connected via Ethernet or cable — no Wi-Fi data available.',
+  diag_wifi_ethernet: 'On Ethernet — no Wi-Fi data.',
 
   // System context card (tunnel/proxy/VPN process)
   diag_sys_title: 'System Network Context',
@@ -370,13 +375,22 @@ const en = {
   diag_lan_cidr: 'CIDR',
   diag_lan_mac: 'MAC',
   diag_lan_family: 'Family',
+
+  // Diagnostics status for view-strip
+  sc_diag_idle:     'Not run',
+  sc_diag_running:  'Running…',
+  sc_diag_complete: 'Done',
+
+  // Panel idle descriptions
+  diag_network_desc: 'IP address, DNS servers, Wi-Fi, and local network.',
+  diag_privacy_desc: 'VPN detection, proxy settings, censorship, and NAT.',
 }
 
 // ─── Simplified Chinese (Microsoft-style) ─────────────────────────────────────
 const zhCN = {
   // App / loading
-  app_name: 'NetRadar 网络连接',
-  loading_badge: '正在准备诊断控制台',
+  app_name: 'NetRadar',
+  loading_badge: '加载中…',
 
   // TitleBar
   tb_close: '关闭',
@@ -391,50 +405,49 @@ const zhCN = {
   view_config: '本地连接 属性',
 
   // TitleBar status labels
-  st_idle: '就绪',
-  st_latency: '正在检查延迟',
-  st_download: '正在测试下载',
-  st_upload: '正在测试上传',
-  st_scoring: '正在计算质量',
-  st_complete: '上次测试已完成',
-  st_error: '测试出错',
+  st_idle:     '就绪',
+  st_latency:  '延迟',
+  st_download: '下载',
+  st_upload:   '上传',
+  st_scoring:  '评分',
+  st_complete: '完成',
+  st_error:    '错误',
 
   // Toolbar
   toolbar_address: '地址',
+  toolbar_go: '转到',
   toolbar_conn_state: '连接状态',
 
-  // View meta — paths
-  path_dashboard: '网络邻居 > 本地连接',
-  path_history: '网络邻居 > 连接报告',
-  path_config: '网络邻居 > 本地连接 属性',
-
-  // View meta — titles / subtitles
-  title_dashboard: '本地连接 状态',
-  subtitle_dashboard: '查看当前活动、连接质量以及所选网络路由的支持详细信息。',
-  title_history: '连接历史记录',
-  subtitle_history: '查看已保存的测速报告，并在一个列表视图中比较以前的网络会话。',
-  title_config: '本地连接 属性',
-  subtitle_config: '选择启用的服务器，并调整此连接使用的诊断设置。',
+  // View meta — titles
+  title_dashboard: '测速',
+  title_network:   '网络',
+  title_privacy:   '隐私',
+  title_history:   '历史',
+  title_config:    '设置',
 
   // Status copy
-  sc_idle: '已连接，就绪',
-  sc_latency: '正在检查服务器响应时间',
-  sc_download: '正在测量接收吞吐量',
-  sc_upload: '正在测量发送吞吐量',
-  sc_scoring: '正在更新连接评分',
-  sc_complete: '上次诊断已完成',
-  sc_error: '上次诊断需要处理',
+  sc_idle:     '就绪',
+  sc_latency:  '检查延迟',
+  sc_download: '正在下载',
+  sc_upload:   '正在上传',
+  sc_scoring:  '评分中',
+  sc_complete: '已完成',
+  sc_error:    '错误',
 
   // Navbar
   nav_tasks: '网络任务',
   nav_details: '详细信息',
   nav_places: '网络位置',
-  nav_tab_status: '状态',
-  nav_tab_status_desc: '打开当前连接状态窗口',
-  nav_tab_history: '历史记录',
-  nav_tab_history_desc: '查看已保存的连接报告',
-  nav_tab_config: '属性',
-  nav_tab_config_desc: '更改服务器和测试参数',
+  nav_tab_status:       '测速',
+  nav_tab_status_desc:  '网速测试',
+  nav_tab_network:      '网络',
+  nav_tab_network_desc: 'IP、DNS、Wi-Fi、LAN',
+  nav_tab_privacy:      '隐私',
+  nav_tab_privacy_desc: 'VPN、代理、防火墙、NAT',
+  nav_tab_history:      '历史',
+  nav_tab_history_desc: '历史记录',
+  nav_tab_config:       '设置',
+  nav_tab_config_desc:  '服务器与设置',
   nav_st_idle: '已连接',
   nav_st_latency: '正在诊断',
   nav_st_download: '正在下载',
@@ -450,16 +463,18 @@ const zhCN = {
   nav_place_entire: '整个网络',
   nav_place_panel: '控制面板',
   nav_local_conn: '本地连接',
+  nav_current_directory: '当前目录',
+  nav_current_directory_label: '工作文件夹',
   nav_not_set: '未设置',
 
   // Dashboard — phase labels
-  phase_latency: '正在检查服务器响应时间',
-  phase_download: '正在从所选服务器接收测试数据',
-  phase_upload: '正在将测试数据发送回所选服务器',
-  phase_scoring: '正在计算最终连接质量报告',
-  phase_complete: '此连接已连接，最新报告已就绪',
-  phase_error: '上次连接测试以错误结束',
-  phase_idle: '此连接已连接，可以开始新的测试',
+  phase_latency:  '检查延迟',
+  phase_download: '正在下载',
+  phase_upload:   '正在上传',
+  phase_scoring:  '评分中',
+  phase_complete: '已完成',
+  phase_error:    '错误',
+  phase_idle:     '就绪',
 
   // Dashboard panels
   panel_general: '常规',
@@ -504,6 +519,7 @@ const zhCN = {
   gauge_upload_sub: '上传吞吐量',
   gauge_label_dl: '下载',
   gauge_label_ul: '上传',
+  gauge_cap: '最高 {value} {unit}',
 
   // Dashboard — support panel
   lan_icon: 'LAN',
@@ -533,8 +549,8 @@ const zhCN = {
 
   // ScoreBoard
   sb_grade: '等级',
-  sb_awaiting: '等待测试运行',
-  sb_note: '较高的分数表示更快的吞吐量和更稳定的延迟。',
+  sb_awaiting: '先运行一次测试',
+  sb_note: '分数越高，网速越快越稳定。',
   sb_dl: '下载',
   sb_ul: '上传',
   sb_latency: '延迟',
@@ -545,6 +561,9 @@ const zhCN = {
   term_completed: '已完成',
   term_error: '错误',
   term_events: '{n} 个事件',
+  term_col_time: '时间',
+  term_col_type: '类型',
+  term_col_message: '详细信息',
   term_empty_title: '暂无活动',
   term_empty_text: '开始测试以填充连接事件和诊断输出。',
   term_monitoring: '正在监控当前流量…',
@@ -582,7 +601,9 @@ const zhCN = {
   cfg_saved_reports: '已保存报告',
   cfg_file_title: '配置文件',
   cfg_file_location: '位置',
+  cfg_version: '版本',
   cfg_open_explorer: '在资源管理器中打开',
+  cfg_reset_file_default: '重置为默认值',
   cfg_servers_title: '测速服务器',
   cfg_servers_intro: '此连接使用以下测试路由。选择启用哪些端点，以及将哪个端点设为首选路由。',
   cfg_server_default: '默认',
@@ -628,7 +649,9 @@ const zhCN = {
   cfg_history_limit_hint: '达到限制时将修剪最旧的条目。',
   cfg_language: '语言',
   cfg_language_hint: '界面显示语言。',
-  cfg_attribution: 'NetRadar v1.0.0 · XP 风格连接管理器',
+  cfg_censorship_urls: '审查检测网址',
+  cfg_censorship_urls_hint: '每行一个网址或域名。它们会追加到内置的防火墙连通性检测中。',
+  cfg_attribution: 'NetRadar v1.0.0',
   cfg_btn_save: '应用设置',
   cfg_btn_saved: '已保存',
   cfg_loading: '正在加载连接属性...',
@@ -649,26 +672,21 @@ const zhCN = {
   diag_unavailable: '此平台不支持该功能',
   diag_na: '—',
 
-  // IP Identity card
-  diag_ip_title: 'IP 身份',
-  diag_ip_address: '公网 IP',
-  diag_ip_country: '国家/地区',
-  diag_ip_region: '省/州',
-  diag_ip_city: '城市',
-  diag_ip_isp: '运营商',
-  diag_ip_org: '组织',
-  diag_ip_asn: 'ASN',
+  // IP Identity card (local)
+  diag_ip_title: '本机信息',
+  diag_ip_hostname: '主机名',
+  diag_ip_platform: '操作系统',
+  diag_ip_os: 'OS 版本',
+  diag_ip_arch: '架构',
+  diag_ip_local_addrs: '网络接口',
 
-  // Anonymity & Reputation card
-  diag_rep_title: '匿名性与信誉',
-  diag_rep_type: '连接类型',
+  // Anonymity Status card (local detection)
+  diag_rep_title: '匿名性检测',
+  diag_rep_status: '检测到的信号',
   diag_rep_vpn: 'VPN',
   diag_rep_proxy: '代理',
+  diag_rep_tunnel: '隧道',
   diag_rep_tor: 'Tor',
-  diag_rep_datacenter: '数据中心',
-  diag_rep_residential: '家庭宽带',
-  diag_rep_risk: '风险评分',
-  diag_rep_provider: '提供商',
   diag_rep_clean: '干净',
   diag_rep_flagged: '已标记',
 
@@ -697,11 +715,12 @@ const zhCN = {
   diag_wifi_ssid: 'SSID',
   diag_wifi_bssid: 'BSSID',
   diag_wifi_signal: '信号强度',
+  diag_wifi_rssi: 'RSSI',
   diag_wifi_channel: '信道',
   diag_wifi_band: '频段',
   diag_wifi_security: '安全类型',
   diag_wifi_speed: '链路速率',
-  diag_wifi_ethernet: '通过有线网络连接 — 无 Wi-Fi 数据。',
+  diag_wifi_ethernet: '有线连接 — 无 Wi-Fi 数据。',
 
   // System context card
   diag_sys_title: '系统网络环境',
@@ -742,6 +761,15 @@ const zhCN = {
   diag_lan_cidr: 'CIDR',
   diag_lan_mac: 'MAC 地址',
   diag_lan_family: '协议族',
+
+  // Diagnostics status for view-strip
+  sc_diag_idle:     '未运行',
+  sc_diag_running:  '运行中…',
+  sc_diag_complete: '已完成',
+
+  // Panel idle descriptions
+  diag_network_desc: 'IP 地址、DNS 服务器、Wi-Fi 及本地网络信息。',
+  diag_privacy_desc: 'VPN 检测、代理设置、防火墙审查及 NAT 类型。',
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────

@@ -1,93 +1,64 @@
 import { execSync } from 'child_process'
 import { createConnection } from 'net'
-import { networkInterfaces } from 'os'
+import { networkInterfaces, hostname, platform, release, arch } from 'os'
 import dns from 'dns'
-import https from 'https'
-import http from 'http'
 
-// ─── IP Identity ──────────────────────────────────────────────────────────────
+// ─── IP Identity (local — no external API) ────────────────────────────────────
 
-export async function getIpIdentity() {
-  return new Promise((resolve) => {
-    const req = http.get(
-      'http://ip-api.com/json/?fields=status,country,countryCode,regionName,city,isp,org,as,proxy,hosting,query',
-      { timeout: 8000 },
-      (res) => {
-        let raw = ''
-        res.on('data', (chunk) => (raw += chunk))
-        res.on('end', () => {
-          try {
-            const d = JSON.parse(raw)
-            if (d.status !== 'success') return resolve(null)
-            resolve({
-              ip: d.query,
-              country: d.country,
-              countryCode: d.countryCode,
-              city: d.city,
-              region: d.regionName,
-              isp: d.isp,
-              org: d.org,
-              asn: d.as,
-              isProxy: d.proxy,
-              isHosting: d.hosting
-            })
-          } catch {
-            resolve(null)
-          }
-        })
-      }
-    )
-    req.on('error', () => resolve(null))
-    req.on('timeout', () => { req.destroy(); resolve(null) })
-  })
-}
-
-// ─── IP Reputation ────────────────────────────────────────────────────────────
-
-export async function getIpReputation(ip) {
-  if (!ip) return null
-  return new Promise((resolve) => {
-    const req = https.get(
-      `https://proxycheck.io/v2/${ip}?vpn=1&asn=1&risk=1`,
-      { timeout: 8000 },
-      (res) => {
-        let raw = ''
-        res.on('data', (chunk) => (raw += chunk))
-        res.on('end', () => {
-          try {
-            const d = JSON.parse(raw)
-            if (d.status === 'error') return resolve(null)
-            const entry = d[ip]
-            if (!entry) return resolve(null)
-            resolve({
-              isVpn: entry.vpn === 'yes',
-              isTor: entry.type === 'Tor',
-              isProxy: entry.proxy === 'yes',
-              riskScore: entry.risk != null ? Number(entry.risk) : null,
-              type: entry.type || null,
-              provider: entry.provider || entry.isp || null,
-              asn: entry.asn || null
-            })
-          } catch {
-            resolve(null)
-          }
-        })
-      }
-    )
-    req.on('error', () => resolve(null))
-    req.on('timeout', () => { req.destroy(); resolve(null) })
-  })
+export function getIpIdentity() {
+  const ifaces = networkInterfaces()
+  const addresses = []
+  for (const [name, addrs] of Object.entries(ifaces || {})) {
+    if (!addrs) continue
+    for (const addr of addrs) {
+      if (addr.internal) continue
+      addresses.push({ name, family: addr.family, address: addr.address, cidr: addr.cidr || null })
+    }
+  }
+  return {
+    hostname: hostname(),
+    platform: platform(),
+    release: release(),
+    arch: arch(),
+    addresses
+  }
 }
 
 // ─── Censorship / GFW Connectivity ───────────────────────────────────────────
 
-const CENSORSHIP_TARGETS = [
+const DEFAULT_CENSORSHIP_TARGETS = [
   { host: 'google.com',     port: 443 },
   { host: 'youtube.com',    port: 443 },
   { host: 'twitter.com',    port: 443 },
   { host: 'github.com',     port: 443 },
   { host: 'cloudflare.com', port: 443 }
 ]
+
+function buildCensorshipTargets(customTargets = []) {
+  const extras = (Array.isArray(customTargets) ? customTargets : [])
+    .map((entry) => String(entry || '').trim())
+    .filter(Boolean)
+    .map((entry) => {
+      try {
+        const normalized = /^[a-z]+:\/\//i.test(entry) ? entry : `https://${entry}`
+        const url = new URL(normalized)
+        return {
+          host: url.hostname,
+          port: Number(url.port) || (url.protocol === 'http:' ? 80 : 443)
+        }
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean)
+
+  const deduped = new Map()
+  for (const target of [...DEFAULT_CENSORSHIP_TARGETS, ...extras]) {
+    deduped.set(`${target.host}:${target.port}`, target)
+  }
+
+  return [...deduped.values()]
+}
 
 function tcpProbe(host, port, timeoutMs = 4000) {
   return new Promise((resolve) => {
@@ -109,9 +80,10 @@ function tcpProbe(host, port, timeoutMs = 4000) {
   })
 }
 
-export async function checkCensorshipConnectivity(countryCode) {
+export async function checkCensorshipConnectivity(countryCode, customTargets = []) {
+  const targets = buildCensorshipTargets(customTargets)
   const results = await Promise.all(
-    CENSORSHIP_TARGETS.map((t) => tcpProbe(t.host, t.port))
+    targets.map((t) => tcpProbe(t.host, t.port))
   )
 
   const baseline = results.find((r) => r.host === 'cloudflare.com')

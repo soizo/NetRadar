@@ -1,27 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useT } from '../i18n/index.jsx'
-
-function gradeColor(grade) {
-  if (!grade || grade === '--') return '#7e8ba0'
-  if (grade.startsWith('S')) return '#2f7dff'
-  if (grade.startsWith('A')) return '#2f9f57'
-  if (grade.startsWith('B')) return '#6db33f'
-  if (grade === 'C') return '#d59b27'
-  if (grade === 'D') return '#d87a20'
-  return '#c95a5a'
-}
-
-function componentColor(value) {
-  if (value == null) return '#a0adbf'
-  if (value >= 80) return '#2f9f57'
-  if (value >= 60) return '#6db33f'
-  if (value >= 40) return '#d59b27'
-  if (value >= 20) return '#d87a20'
-  return '#c95a5a'
-}
+import { componentColor, gradeColor, tintColor } from '../utils/uiPalette.js'
 
 function BreakdownBar({ label, value, color }) {
   const barWidth = Math.max(0, Math.min(100, value || 0))
+  const fillHighlight = tintColor(color, 68)
 
   return (
     <div className="breakdown-bar-row">
@@ -31,7 +14,7 @@ function BreakdownBar({ label, value, color }) {
           className="breakdown-bar-fill"
           style={{
             width: `${barWidth}%`,
-            background: `linear-gradient(90deg, ${color} 0%, #ffffff 100%)`
+            background: `linear-gradient(180deg, ${fillHighlight} 0%, ${color} 100%)`
           }}
         />
       </div>
