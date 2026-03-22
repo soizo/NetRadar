@@ -321,9 +321,8 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.on('window-close', (e) => {
-    const win = BrowserWindow.fromWebContents(e.sender)
-    win?.close()
+  ipcMain.on('window-close', () => {
+    app.quit()
   })
 
   createWindow()
@@ -336,7 +335,5 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+  app.quit()
 })

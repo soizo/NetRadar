@@ -62,3 +62,9 @@ playwright-report/
 .cache/
 tmp/
 temp/
+
+# Claude Code (personal config, not for repo)
+.claude/
+
+# Release tool (personal script, not for repo)
+scripts/release.sh

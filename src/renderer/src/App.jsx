@@ -35,7 +35,6 @@ export default function App() {
         if (api && typeof api.getConfig === 'function') {
           const cfg = await api.getConfig()
           const finalConfig = cfg || cloneConfig(DEFAULT_CONFIG)
-          setLang(finalConfig?.settings?.language || DEFAULT_CONFIG.settings.language)
           setConfig(finalConfig)
         } else {
           setConfig(cloneConfig(DEFAULT_CONFIG))
@@ -54,7 +53,13 @@ export default function App() {
     if (api && typeof api.onMenuNavigate === 'function') {
       api.onMenuNavigate((_, view) => setCurrentView(view))
     }
-  }, [setLang])
+  }, [])
+
+  useEffect(() => {
+    if (config?.settings?.language) {
+      setLang(config.settings.language)
+    }
+  }, [config?.settings?.language, setLang])
 
   const handleSaveConfig = useCallback(async (newConfig) => {
     setConfig(newConfig)
@@ -63,11 +68,10 @@ export default function App() {
       if (api && typeof api.saveConfig === 'function') {
         await api.saveConfig(newConfig)
       }
-      setLang(newConfig?.settings?.language || DEFAULT_CONFIG.settings.language)
     } catch (err) {
       console.error('Failed to save config:', err)
     }
-  }, [setLang])
+  }, [])
 
   const handleResetConfig = useCallback(async () => {
     try {
@@ -76,13 +80,12 @@ export default function App() {
 
       const result = await api.resetConfig()
       if (result?.success && result.config) {
-        setLang(result.config?.settings?.language || DEFAULT_CONFIG.settings.language)
         setConfig(result.config)
       }
     } catch (err) {
       console.error('Failed to reset config:', err)
     }
-  }, [setLang])
+  }, [])
 
   const handleTestComplete = useCallback(async (testResults) => {
     if (!config) return
