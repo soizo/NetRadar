@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import TitleBar from './components/TitleBar.jsx'
 import Navbar from './components/Navbar.jsx'
 import Dashboard from './components/Dashboard.jsx'
@@ -27,6 +27,9 @@ export default function App() {
 
   const savedResultRef = useRef(null)
   const viewBodyRef = useRef(null)
+  const configRef = useRef(config)
+
+  useEffect(() => { configRef.current = config }, [config])
 
   useEffect(() => {
     async function loadConfig() {
@@ -50,9 +53,11 @@ export default function App() {
 
     // macOS menu: Preferences (Cmd+,) → navigate to settings
     const api = window.api
+    let unsub
     if (api && typeof api.onMenuNavigate === 'function') {
-      api.onMenuNavigate((_, view) => setCurrentView(view))
+      unsub = api.onMenuNavigate((_, view) => setCurrentView(view))
     }
+    return () => unsub?.()
   }, [])
 
   useEffect(() => {
@@ -88,12 +93,13 @@ export default function App() {
   }, [])
 
   const handleTestComplete = useCallback(async (testResults) => {
-    if (!config) return
+    const cfg = configRef.current
+    if (!cfg) return
     const api = window.api
-    if (!api || !config.settings?.save_history) return
+    if (!api || !cfg.settings?.save_history) return
 
     const historyEntry = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       server: testResults.serverId || 'unknown',
       downloadMbps: testResults.downloadMbps,
@@ -104,11 +110,11 @@ export default function App() {
       grade: testResults.score?.grade ?? 'F'
     }
 
-    const limit = config.settings?.history_limit ?? 100
-    const history = Array.isArray(config.history) ? config.history : []
+    const limit = cfg.settings?.history_limit ?? 100
+    const history = Array.isArray(cfg.history) ? cfg.history : []
     const newHistory = [...history, historyEntry].slice(-limit)
-    await handleSaveConfig({ ...config, history: newHistory })
-  }, [config, handleSaveConfig])
+    await handleSaveConfig({ ...cfg, history: newHistory })
+  }, [handleSaveConfig])
 
   useEffect(() => {
     if (viewBodyRef.current) viewBodyRef.current.scrollTop = 0
@@ -134,15 +140,17 @@ export default function App() {
     await handleSaveConfig({ ...config, history: [] })
   }, [config, handleSaveConfig])
 
-  const VIEW_META = {
+  const lang = config?.settings?.language
+
+  const VIEW_META = useMemo(() => ({
     dashboard: { iconSrc: iconStatus,  title: t('title_dashboard') },
     network:   { iconSrc: iconDiag,    title: t('title_network') },
     privacy:   { iconSrc: iconPrivacy, title: t('title_privacy') },
     history:   { iconSrc: iconHistory, title: t('title_history') },
     config:    { iconSrc: iconConfig,  title: t('title_config') }
-  }
+  }), [lang, t])
 
-  const STATUS_COPY = {
+  const STATUS_COPY = useMemo(() => ({
     idle:     t('sc_idle'),
     latency:  t('sc_latency'),
     download: t('sc_download'),
@@ -150,16 +158,19 @@ export default function App() {
     scoring:  t('sc_scoring'),
     complete: t('sc_complete'),
     error:    t('sc_error')
-  }
+  }), [lang, t])
 
-  const DIAG_COPY = {
+  const DIAG_COPY = useMemo(() => ({
     idle:     t('sc_diag_idle'),
     running:  t('sc_diag_running'),
     complete: t('sc_diag_complete'),
     error:    t('sc_error')
-  }
+  }), [lang, t])
 
-  const VIEW_PATHS = config?.ui?.view_paths || DEFAULT_CONFIG.ui.view_paths
+  const VIEW_PATHS = useMemo(
+    () => config?.ui?.view_paths || DEFAULT_CONFIG.ui.view_paths,
+    [config?.ui?.view_paths]
+  )
 
   const [addressValue, setAddressValue] = useState(VIEW_PATHS[currentView] || '')
 

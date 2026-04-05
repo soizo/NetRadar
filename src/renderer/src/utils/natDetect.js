@@ -59,11 +59,23 @@ export function detectNat(timeoutMs = 6000) {
       const firstSrflxIp = srflxIps[0] || null
       const hasNat = firstSrflxIp ? !hostIps.has(firstSrflxIp) : null
 
-      // Symmetric NAT: if we get srflx candidates from 2+ STUN servers and the
-      // external PORT differs between them (same local socket, different remote destination)
-      const srflxPorts = [...new Set(srflx.map(c => c.port).filter(Boolean))]
+      // Symmetric NAT: group srflx candidates by their relatedAddress (the local
+      // interface IP). Only compare ports within the same group. If any group has
+      // differing ports across the two STUN servers → symmetric.
+      const groupsByRelated = new Map()
+      for (const c of srflx) {
+        const key = c.relatedAddr || '__default__'
+        if (!groupsByRelated.has(key)) groupsByRelated.set(key, [])
+        groupsByRelated.get(key).push(c)
+      }
+      let isSymmetric = false
+      for (const [, group] of groupsByRelated) {
+        const ports = new Set(group.map(c => c.port).filter(Boolean))
+        if (ports.size > 1) { isSymmetric = true; break }
+      }
+      // Also flag symmetric if external IPs differ
       const srflxIpSet = new Set(srflxIps)
-      const isSymmetric = srflxPorts.length > 1 || srflxIpSet.size > 1
+      if (srflxIpSet.size > 1) isSymmetric = true
 
       let type
       if (!hasNat) {

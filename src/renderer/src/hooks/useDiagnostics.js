@@ -3,6 +3,7 @@ import { detectNat } from '../utils/natDetect.js'
 
 const INITIAL_DATA = {
   ip: null,
+  publicIp: null,
   sysContext: null,
   censorship: null,
   dns: null,
@@ -13,6 +14,7 @@ const INITIAL_DATA = {
 
 const INITIAL_LOADING = {
   ip: false,
+  publicIp: false,
   sysContext: false,
   censorship: false,
   dns: false,
@@ -23,6 +25,7 @@ const INITIAL_LOADING = {
 
 const INITIAL_ERRORS = {
   ip: null,
+  publicIp: null,
   sysContext: null,
   censorship: null,
   dns: null,
@@ -37,6 +40,7 @@ export function useDiagnostics(config = null) {
   const [loading, setLoading] = useState(INITIAL_LOADING)
   const [errors, setErrors] = useState(INITIAL_ERRORS)
   const abortRef = useRef(false)
+  const runIdRef = useRef(0)
 
   const setField = useCallback((field, value) => {
     setData((prev) => ({ ...prev, [field]: value }))
@@ -52,40 +56,55 @@ export function useDiagnostics(config = null) {
 
   const run = useCallback(async () => {
     abortRef.current = false
+    runIdRef.current += 1
+    const currentRunId = runIdRef.current
     setStatus('running')
     setData(INITIAL_DATA)
     setLoading(INITIAL_LOADING)
     setErrors(INITIAL_ERRORS)
 
-    // ── Phase 1: All local — ip, sysContext, localNet, wifi (fully parallel) ─
+    // ── Phase 1: All local + public IP (fully parallel) ────────────────────
     setFieldLoading('ip', true)
+    setFieldLoading('publicIp', true)
     setFieldLoading('sysContext', true)
     setFieldLoading('localNet', true)
     setFieldLoading('wifi', true)
 
+    const stale = () => runIdRef.current !== currentRunId
+
+    let publicIpCountryCode = null
+
     await Promise.all([
       window.api.diagIpIdentity()
-        .then((v) => setField('ip', v))
-        .catch((e) => setFieldError('ip', e?.message || 'error'))
-        .finally(() => setFieldLoading('ip', false)),
+        .then((v) => { if (!stale()) setField('ip', v) })
+        .catch((e) => { if (!stale()) setFieldError('ip', e?.message || 'error') })
+        .finally(() => { if (!stale()) setFieldLoading('ip', false) }),
+
+      window.api.diagPublicIp()
+        .then((v) => {
+          if (!stale()) setField('publicIp', v)
+          publicIpCountryCode = v?.countryCode || null
+        })
+        .catch((e) => { if (!stale()) setFieldError('publicIp', e?.message || 'error') })
+        .finally(() => { if (!stale()) setFieldLoading('publicIp', false) }),
 
       window.api.diagSysContext()
-        .then((v) => setField('sysContext', v))
-        .catch((e) => setFieldError('sysContext', e?.message || 'error'))
-        .finally(() => setFieldLoading('sysContext', false)),
+        .then((v) => { if (!stale()) setField('sysContext', v) })
+        .catch((e) => { if (!stale()) setFieldError('sysContext', e?.message || 'error') })
+        .finally(() => { if (!stale()) setFieldLoading('sysContext', false) }),
 
       window.api.diagLocalNetwork()
-        .then((v) => setField('localNet', v))
-        .catch((e) => setFieldError('localNet', e?.message || 'error'))
-        .finally(() => setFieldLoading('localNet', false)),
+        .then((v) => { if (!stale()) setField('localNet', v) })
+        .catch((e) => { if (!stale()) setFieldError('localNet', e?.message || 'error') })
+        .finally(() => { if (!stale()) setFieldLoading('localNet', false) }),
 
       window.api.diagWifi()
-        .then((v) => setField('wifi', v))
-        .catch((e) => setFieldError('wifi', e?.message || 'error'))
-        .finally(() => setFieldLoading('wifi', false))
+        .then((v) => { if (!stale()) setField('wifi', v) })
+        .catch((e) => { if (!stale()) setFieldError('wifi', e?.message || 'error') })
+        .finally(() => { if (!stale()) setFieldLoading('wifi', false) })
     ])
 
-    if (abortRef.current) { setStatus('idle'); return }
+    if (abortRef.current || stale()) { setStatus('idle'); return }
 
     // ── Phase 2: Network checks — censorship + DNS + NAT ──────────────────
     setFieldLoading('censorship', true)
@@ -95,23 +114,23 @@ export function useDiagnostics(config = null) {
     const censorshipTargets = config?.diagnostics?.censorship_targets || []
 
     await Promise.all([
-      window.api.diagCensorship(null, censorshipTargets)
-        .then((v) => setField('censorship', v))
-        .catch((e) => setFieldError('censorship', e?.message || 'error'))
-        .finally(() => setFieldLoading('censorship', false)),
+      window.api.diagCensorship(publicIpCountryCode, censorshipTargets)
+        .then((v) => { if (!stale()) setField('censorship', v) })
+        .catch((e) => { if (!stale()) setFieldError('censorship', e?.message || 'error') })
+        .finally(() => { if (!stale()) setFieldLoading('censorship', false) }),
 
       window.api.diagDns()
-        .then((v) => setField('dns', v))
-        .catch((e) => setFieldError('dns', e?.message || 'error'))
-        .finally(() => setFieldLoading('dns', false)),
+        .then((v) => { if (!stale()) setField('dns', v) })
+        .catch((e) => { if (!stale()) setFieldError('dns', e?.message || 'error') })
+        .finally(() => { if (!stale()) setFieldLoading('dns', false) }),
 
       detectNat()
-        .then((v) => setField('nat', v))
-        .catch((e) => setFieldError('nat', e?.message || 'error'))
-        .finally(() => setFieldLoading('nat', false))
+        .then((v) => { if (!stale()) setField('nat', v) })
+        .catch((e) => { if (!stale()) setFieldError('nat', e?.message || 'error') })
+        .finally(() => { if (!stale()) setFieldLoading('nat', false) })
     ])
 
-    setStatus('complete')
+    if (!stale()) setStatus('complete')
   }, [config, setField, setFieldLoading, setFieldError])
 
   const reset = useCallback(() => {

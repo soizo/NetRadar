@@ -105,6 +105,8 @@ const en = {
   btn_start: 'Start Test',
   btn_run_again: 'Run Again',
   btn_retry: 'Retry Test',
+  btn_copy_results: 'Copy Results',
+  btn_copied: 'Copied!',
   conn_actions_note: 'Start a diagnostics pass to refresh transfer rates, latency, jitter, and the final quality score.',
   sum_status: 'Status',
   sum_route: 'Default route',
@@ -191,6 +193,7 @@ const en = {
   hist_avg_score: 'Average score',
   hist_clear: 'Clear History',
   hist_confirm_clear: 'Confirm Clear',
+  hist_export_csv: 'Export CSV',
   hist_table_title: 'Reports Stored On This Computer',
   hist_th_time: 'Time',
   hist_th_server: 'Server',
@@ -285,6 +288,13 @@ const en = {
   diag_error: 'Unavailable',
   diag_unavailable: 'Not available on this platform',
   diag_na: '—',
+
+  // Public IP card
+  diag_pub_ip_title: 'Public IP',
+  diag_pub_ip: 'Public IP',
+  diag_pub_isp: 'ISP',
+  diag_pub_location: 'Location',
+  diag_pub_asn: 'ASN',
 
   // IP Identity card (local)
   diag_ip_title: 'This Device',
@@ -491,6 +501,8 @@ const zhCN = {
   btn_start: '开始测试',
   btn_run_again: '再次运行',
   btn_retry: '重试测试',
+  btn_copy_results: '复制结果',
+  btn_copied: '已复制!',
   conn_actions_note: '开始诊断以刷新传输速率、延迟、抖动和最终质量评分。',
   sum_status: '状态',
   sum_route: '默认路由',
@@ -577,6 +589,7 @@ const zhCN = {
   hist_avg_score: '平均分数',
   hist_clear: '清除历史记录',
   hist_confirm_clear: '确认清除',
+  hist_export_csv: '导出 CSV',
   hist_table_title: '存储在此计算机上的报告',
   hist_th_time: '时间',
   hist_th_server: '服务器',
@@ -671,6 +684,13 @@ const zhCN = {
   diag_error: '不可用',
   diag_unavailable: '此平台不支持该功能',
   diag_na: '—',
+
+  // Public IP card
+  diag_pub_ip_title: '公网 IP',
+  diag_pub_ip: '公网 IP',
+  diag_pub_isp: '运营商',
+  diag_pub_location: '位置',
+  diag_pub_asn: 'ASN',
 
   // IP Identity card (local)
   diag_ip_title: '本机信息',

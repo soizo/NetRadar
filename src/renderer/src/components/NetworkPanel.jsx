@@ -12,6 +12,30 @@ import {
   DiagSignalBars
 } from './DiagnosticsShared.jsx'
 
+// ─── Public IP ───────────────────────────────────────────────────────────────
+
+function PublicIpCard({ data, loading, error }) {
+  const { t } = useT()
+  const state = loading ? 'loading' : error ? 'error' : data ? 'ok' : 'idle'
+  return (
+    <DiagCardShell icon={iconIp} title={t('diag_pub_ip_title')} dotState={state}>
+      {loading && <div className="diag-state">{t('diag_loading')}</div>}
+      {!loading && error && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
+      {!loading && !error && !data && <div className="diag-state diag-state--error">{t('diag_error')}</div>}
+      {!loading && data && (
+        <>
+          <DiagRow label={t('diag_pub_ip')} valueClass="diag-row__value--blue">{data.ip}</DiagRow>
+          <DiagRow label={t('diag_pub_isp')}>{data.isp || t('diag_na')}</DiagRow>
+          <DiagRow label={t('diag_pub_location')} valueClass="diag-row__value--muted">
+            {[data.city, data.country].filter(Boolean).join(', ') || t('diag_na')}
+          </DiagRow>
+          <DiagRow label={t('diag_pub_asn')} valueClass="diag-row__value--muted">{data.asn || t('diag_na')}</DiagRow>
+        </>
+      )}
+    </DiagCardShell>
+  )
+}
+
 // ─── IP Identity (local) ─────────────────────────────────────────────────────
 
 const PLATFORM_LABELS = {
@@ -181,10 +205,11 @@ export default function NetworkPanel({ data, loading, errors, status, run, reset
       )}
       {hasRun && (
         <div className="diag-cards-grid">
-          <IpCard  data={data.ip}       loading={loading.ip}       error={errors.ip} />
-          <DnsCard data={data.dns}      loading={loading.dns}      error={errors.dns} />
-          <WifiCard data={data.wifi}    loading={loading.wifi}     error={errors.wifi} />
-          <LanCard  data={data.localNet} loading={loading.localNet} error={errors.localNet} />
+          <IpCard       data={data.ip}       loading={loading.ip}       error={errors.ip} />
+          <PublicIpCard data={data.publicIp} loading={loading.publicIp} error={errors.publicIp} />
+          <DnsCard      data={data.dns}      loading={loading.dns}      error={errors.dns} />
+          <WifiCard     data={data.wifi}     loading={loading.wifi}     error={errors.wifi} />
+          <LanCard      data={data.localNet} loading={loading.localNet} error={errors.localNet} />
         </div>
       )}
     </div>

@@ -1,7 +1,12 @@
-import { execSync } from 'child_process'
+import { exec } from 'child_process'
 import { createConnection } from 'net'
 import { networkInterfaces, hostname, platform, release, arch } from 'os'
+import { request as httpsRequest } from 'https'
+import { request as httpRequest } from 'http'
 import dns from 'dns'
+import { promisify } from 'util'
+
+const execAsync = promisify(exec)
 
 // ─── IP Identity (local — no external API) ────────────────────────────────────
 
@@ -75,6 +80,7 @@ function tcpProbe(host, port, timeoutMs = 4000) {
       resolve({ host, reachable: false, latencyMs: null })
     })
     sock.on('error', () => {
+      sock.destroy()
       resolve({ host, reachable: false, latencyMs: null })
     })
   })
@@ -135,10 +141,10 @@ const KNOWN_DNS = {
   '180.76.76.76': 'Baidu DNS'
 }
 
-function measureDnsLatency() {
+function measureDnsLatency(domain) {
   return new Promise((resolve) => {
     const start = Date.now()
-    dns.resolve4('cloudflare.com', (err) => {
+    dns.resolve4(domain, (err) => {
       resolve(err ? null : Date.now() - start)
     })
   })
@@ -147,12 +153,12 @@ function measureDnsLatency() {
 export async function getDnsInfo() {
   const servers = dns.getServers()
 
-  // Measure latency 3 times, take average
-  const samples = await Promise.all([
-    measureDnsLatency(),
-    measureDnsLatency(),
-    measureDnsLatency()
-  ])
+  // Measure latency sequentially with different domains
+  const dnsDomains = ['cloudflare.com', 'google.com', 'example.com']
+  const samples = []
+  for (const domain of dnsDomains) {
+    samples.push(await measureDnsLatency(domain))
+  }
   const valid = samples.filter((v) => v !== null)
   const avgLatencyMs = valid.length > 0
     ? Math.round(valid.reduce((a, b) => a + b, 0) / valid.length)
@@ -165,7 +171,6 @@ export async function getDnsInfo() {
     return { ip: clean, provider }
   })
 
-  const customDns = labeled.some((s) => s.provider !== null && !s.provider.includes('ISP'))
   const hasKnownProvider = labeled.some((s) => s.provider !== null)
 
   return {
@@ -204,21 +209,22 @@ const OUI_MAP = {
 
 function lookupOui(mac) {
   if (!mac) return null
-  const prefix = mac.toUpperCase().slice(0, 8) // XX:XX:XX
+  // Zero-pad each octet for consistent OUI lookup
+  const normalized = mac.split(/[:\-]/).map(o => o.padStart(2, '0')).join(':')
+  const prefix = normalized.toUpperCase().slice(0, 8) // XX:XX:XX
   return OUI_MAP[prefix] || null
 }
 
-function getDefaultGateway() {
-  const platform = process.platform
+async function getDefaultGateway() {
+  const plat = process.platform
   try {
-    if (platform === 'darwin' || platform === 'linux') {
-      const out = execSync('netstat -rn', { timeout: 3000, stdio: 'pipe' }).toString()
-      // Look for default route line
-      const match = out.match(/^(?:default|0\.0\.0\.0)\s+(\d+\.\d+\.\d+\.\d+)/m)
+    if (plat === 'darwin' || plat === 'linux') {
+      const { stdout } = await execAsync('netstat -rn', { timeout: 3000 })
+      const match = stdout.match(/^(?:default|0\.0\.0\.0)\s+(\d+\.\d+\.\d+\.\d+)/m)
       return match ? match[1] : null
-    } else if (platform === 'win32') {
-      const out = execSync('route print 0.0.0.0', { timeout: 3000, stdio: 'pipe' }).toString()
-      const match = out.match(/0\.0\.0\.0\s+0\.0\.0\.0\s+(\d+\.\d+\.\d+\.\d+)/)
+    } else if (plat === 'win32') {
+      const { stdout } = await execAsync('route print 0.0.0.0', { timeout: 3000 })
+      const match = stdout.match(/0\.0\.0\.0\s+0\.0\.0\.0\s+(\d+\.\d+\.\d+\.\d+)/)
       return match ? match[1] : null
     }
   } catch {
@@ -227,23 +233,22 @@ function getDefaultGateway() {
   return null
 }
 
-function getGatewayMac(gatewayIp) {
+async function getGatewayMac(gatewayIp) {
   if (!gatewayIp) return null
   try {
-    const out = execSync('arp -a', { timeout: 3000, stdio: 'pipe' }).toString()
-    // Match lines containing the gateway IP followed by a MAC address
+    const { stdout } = await execAsync('arp -a', { timeout: 3000 })
     const escaped = gatewayIp.replace(/\./g, '\\.')
     const re = new RegExp(`${escaped}[^\\n]*?([0-9a-fA-F]{1,2}[:\\-][0-9a-fA-F]{1,2}[:\\-][0-9a-fA-F]{1,2}[:\\-][0-9a-fA-F]{1,2}[:\\-][0-9a-fA-F]{1,2}[:\\-][0-9a-fA-F]{1,2})`)
-    const m = out.match(re)
+    const m = stdout.match(re)
     if (!m) return null
-    // Normalize to XX:XX:XX:XX:XX:XX
-    return m[1].replace(/-/g, ':').toLowerCase()
+    // Normalize to XX:XX:XX:XX:XX:XX with zero-padded octets
+    return m[1].replace(/-/g, ':').split(':').map(o => o.padStart(2, '0')).join(':').toLowerCase()
   } catch {
     return null
   }
 }
 
-export function getLocalNetworkInfo() {
+export async function getLocalNetworkInfo() {
   const ifaces = networkInterfaces()
   const interfaces = []
 
@@ -262,8 +267,8 @@ export function getLocalNetworkInfo() {
     }
   }
 
-  const gatewayIp = getDefaultGateway()
-  const gatewayMac = getGatewayMac(gatewayIp)
+  const gatewayIp = await getDefaultGateway()
+  const gatewayMac = await getGatewayMac(gatewayIp)
   const manufacturer = lookupOui(gatewayMac)
 
   return {
@@ -285,52 +290,115 @@ function parseRssiToPercent(rssi) {
   return Math.round(((clamped + 90) / 60) * 100)
 }
 
+// Known 5 GHz channels
+const FIVE_GHZ_CHANNELS = new Set([
+  36, 40, 44, 48, 52, 56, 60, 64,
+  100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144,
+  149, 153, 157, 161, 165
+])
+
 function channelToBand(channel) {
   if (!channel) return null
   const ch = Number(channel)
+  if (ch > 177) return '6 GHz'
+  if (FIVE_GHZ_CHANNELS.has(ch)) return '5 GHz'
   if (ch >= 1 && ch <= 14) return '2.4 GHz'
-  if (ch >= 36 && ch <= 177) return '5 GHz'
-  if (ch >= 1 && ch <= 233) return '6 GHz'
+  // Channels 15-177 not in the known 5 GHz set → likely 6 GHz
+  if (ch > 14) return '6 GHz'
   return null
 }
 
-export function getWifiInfo() {
-  const platform = process.platform
+async function getWifiViaMacosSystemProfiler() {
   try {
-    if (platform === 'darwin') {
-      const airportPath =
-        '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
-      const out = execSync(`"${airportPath}" -I`, { timeout: 5000, stdio: 'pipe' }).toString()
-      const get = (key) => {
-        const m = out.match(new RegExp(`\\s+${key}:\\s+(.+)`))
-        return m ? m[1].trim() : null
-      }
-      const ssid = get('SSID')
-      const bssid = get('BSSID')
-      const rssi = get('agrCtlRSSI') ? Number(get('agrCtlRSSI')) : null
-      const channel = get('channel')
-      const mcs = get('MCS') ? Number(get('MCS')) : null
-      const security = get('link auth')
+    const { stdout } = await execAsync('system_profiler SPAirPortDataType -json', { timeout: 10000 })
+    const data = JSON.parse(stdout)
+    const airportInfo = data?.SPAirPortDataType
+    if (!Array.isArray(airportInfo) || airportInfo.length === 0) return null
 
-      // channel can be "6" or "44,+1" (bonded)
-      const channelNum = channel ? channel.split(',')[0] : null
+    // Find the current network info within the interface list
+    for (const iface of airportInfo) {
+      const currentNetwork = iface?.spairport_current_network_information
+      if (!currentNetwork) continue
 
-      if (!ssid || ssid === '(not associated)') return null
+      const ssid = currentNetwork.spairport_current_network_information_ssid || null
+      if (!ssid) continue
+
+      const bssid = currentNetwork.spairport_current_network_information_bssid || null
+      const rssi = currentNetwork.spairport_signal_noise?.spairport_signal_noise_signal
+        ? Number(currentNetwork.spairport_signal_noise.spairport_signal_noise_signal)
+        : null
+      const noise = currentNetwork.spairport_signal_noise?.spairport_signal_noise_noise
+        ? Number(currentNetwork.spairport_signal_noise.spairport_signal_noise_noise)
+        : null
+      const channel = currentNetwork.spairport_current_network_information_channel
+        ? String(currentNetwork.spairport_current_network_information_channel).split(/[,\s]/)[0]
+        : null
+      const phyMode = currentNetwork.spairport_current_network_information_phy_mode || null
+      const txRate = currentNetwork.spairport_current_network_information_tx_rate
+        ? Number(currentNetwork.spairport_current_network_information_tx_rate)
+        : null
+      const security = currentNetwork.spairport_current_network_information_security || null
 
       return {
         ssid,
         bssid,
         rssiDbm: rssi,
         signalPercent: parseRssiToPercent(rssi),
-        channel: channelNum,
-        band: channelToBand(channelNum),
+        channel,
+        band: channelToBand(channel),
         security: security || null,
-        mcs
+        phyMode,
+        linkSpeedMbps: txRate
       }
-    } else if (platform === 'win32') {
-      const out = execSync('netsh wlan show interfaces', { timeout: 5000, stdio: 'pipe' }).toString()
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+export async function getWifiInfo() {
+  const plat = process.platform
+  try {
+    if (plat === 'darwin') {
+      const airportPath =
+        '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
+      try {
+        const { stdout } = await execAsync(`"${airportPath}" -I`, { timeout: 5000 })
+        const get = (key) => {
+          const m = stdout.match(new RegExp(`\\s+${key}:\\s+(.+)`))
+          return m ? m[1].trim() : null
+        }
+        const ssid = get('SSID')
+        const bssid = get('BSSID')
+        const rssi = get('agrCtlRSSI') ? Number(get('agrCtlRSSI')) : null
+        const channel = get('channel')
+        const mcs = get('MCS') ? Number(get('MCS')) : null
+        const security = get('link auth')
+
+        // channel can be "6" or "44,+1" (bonded)
+        const channelNum = channel ? channel.split(',')[0] : null
+
+        if (!ssid || ssid === '(not associated)') return null
+
+        return {
+          ssid,
+          bssid,
+          rssiDbm: rssi,
+          signalPercent: parseRssiToPercent(rssi),
+          channel: channelNum,
+          band: channelToBand(channelNum),
+          security: security || null,
+          mcs
+        }
+      } catch {
+        // airport command not available — fall back to system_profiler
+        return await getWifiViaMacosSystemProfiler()
+      }
+    } else if (plat === 'win32') {
+      const { stdout } = await execAsync('netsh wlan show interfaces', { timeout: 5000 })
       const get = (key) => {
-        const m = out.match(new RegExp(`${key}\\s*:\\s+(.+)`))
+        const m = stdout.match(new RegExp(`${key}\\s*:\\s+(.+)`))
         return m ? m[1].trim() : null
       }
       const ssid = get('SSID')
@@ -354,13 +422,12 @@ export function getWifiInfo() {
         security: auth || null,
         linkSpeedMbps: rxRate ? Number(rxRate) : null
       }
-    } else if (platform === 'linux') {
+    } else if (plat === 'linux') {
       // Try nmcli first
-      const out = execSync('nmcli -t -f ACTIVE,SSID,SIGNAL,CHAN,SECURITY dev wifi 2>/dev/null', {
-        timeout: 5000,
-        stdio: 'pipe'
-      }).toString()
-      const activeLine = out.split('\n').find((l) => l.startsWith('yes:'))
+      const { stdout } = await execAsync('nmcli -t -f ACTIVE,SSID,SIGNAL,CHAN,SECURITY dev wifi 2>/dev/null', {
+        timeout: 5000
+      })
+      const activeLine = stdout.split('\n').find((l) => l.startsWith('yes:'))
       if (!activeLine) return null
       const parts = activeLine.split(':')
       // yes:SSID:signal:chan:security
@@ -410,8 +477,8 @@ const VPN_PROCESS_PATTERNS = [
   'privoxy'
 ]
 
-export function getSystemNetworkContext() {
-  const platform = process.platform
+export async function getSystemNetworkContext() {
+  const plat = process.platform
 
   // ── 1. Tunnel interfaces ──────────────────────────────────────────────────
   const ifaces = networkInterfaces()
@@ -426,10 +493,10 @@ export function getSystemNetworkContext() {
   // ── 2. System proxy settings ──────────────────────────────────────────────
   let proxySettings = null
   try {
-    if (platform === 'darwin') {
-      const out = execSync('scutil --proxy', { timeout: 3000, stdio: 'pipe' }).toString()
-      const num = (key) => { const m = out.match(new RegExp(`${key}\\s*:\\s*(\\d+)`)); return m ? Number(m[1]) : 0 }
-      const str = (key) => { const m = out.match(new RegExp(`${key}\\s*:\\s*(.+)`)); return m ? m[1].trim() : null }
+    if (plat === 'darwin') {
+      const { stdout } = await execAsync('scutil --proxy', { timeout: 3000 })
+      const num = (key) => { const m = stdout.match(new RegExp(`${key}\\s*:\\s*(\\d+)`)); return m ? Number(m[1]) : 0 }
+      const str = (key) => { const m = stdout.match(new RegExp(`${key}\\s*:\\s*(.+)`)); return m ? m[1].trim() : null }
       proxySettings = {
         httpEnabled:  num('HTTPEnable')  === 1,
         httpsEnabled: num('HTTPSEnable') === 1,
@@ -438,13 +505,16 @@ export function getSystemNetworkContext() {
         httpsProxy: str('HTTPSProxy') ? `${str('HTTPSProxy')}:${str('HTTPSPort') || '443'}` : null,
         socksProxy: str('SOCKSProxy') ? `${str('SOCKSProxy')}:${str('SOCKSPort') || '1080'}`: null
       }
-    } else if (platform === 'win32') {
-      const regOut = execSync('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable', { timeout: 3000, stdio: 'pipe' }).toString()
+    } else if (plat === 'win32') {
+      const { stdout: regOut } = await execAsync('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable', { timeout: 3000 })
       const enabled = /0x1/.test(regOut)
       let server = null
-      try { const s = execSync('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer', { timeout: 3000, stdio: 'pipe' }).toString(); server = s.match(/ProxyServer\s+REG_SZ\s+(.+)/)?.[1]?.trim() || null } catch {}
+      try {
+        const { stdout: s } = await execAsync('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer', { timeout: 3000 })
+        server = s.match(/ProxyServer\s+REG_SZ\s+(.+)/)?.[1]?.trim() || null
+      } catch {}
       proxySettings = { httpEnabled: enabled, httpProxy: server }
-    } else if (platform === 'linux') {
+    } else if (plat === 'linux') {
       const h = process.env.http_proxy || process.env.HTTP_PROXY || null
       const hs = process.env.https_proxy || process.env.HTTPS_PROXY || null
       proxySettings = { httpEnabled: !!h, httpsEnabled: !!hs, httpProxy: h, httpsProxy: hs }
@@ -453,26 +523,29 @@ export function getSystemNetworkContext() {
 
   // ── 3. Known VPN/proxy processes ─────────────────────────────────────────
   const detectedProcesses = []
-  if (platform === 'darwin' || platform === 'linux') {
+  if (plat === 'darwin' || plat === 'linux') {
     try {
-      const psOut = execSync('ps -eo comm 2>/dev/null || ps aux', { timeout: 4000, stdio: 'pipe' }).toString().toLowerCase()
+      const { stdout: psOut } = await execAsync('ps -eo comm 2>/dev/null || ps aux', { timeout: 4000 })
+      const psLower = psOut.toLowerCase()
       for (const name of VPN_PROCESS_PATTERNS) {
-        if (psOut.includes(name)) detectedProcesses.push(name)
+        if (new RegExp('\\b' + name + '\\b', 'i').test(psLower)) detectedProcesses.push(name)
       }
     } catch { /* ignore */ }
-    if (platform === 'darwin') {
+    if (plat === 'darwin') {
       try {
-        const lsOut = execSync('lsappinfo list 2>/dev/null', { timeout: 4000, stdio: 'pipe' }).toString().toLowerCase()
+        const { stdout: lsOut } = await execAsync('lsappinfo list 2>/dev/null', { timeout: 4000 })
+        const lsLower = lsOut.toLowerCase()
         for (const name of VPN_PROCESS_PATTERNS) {
-          if (lsOut.includes(name) && !detectedProcesses.includes(name)) detectedProcesses.push(name)
+          if (new RegExp('\\b' + name + '\\b', 'i').test(lsLower) && !detectedProcesses.includes(name)) detectedProcesses.push(name)
         }
       } catch { /* ignore */ }
     }
-  } else if (platform === 'win32') {
+  } else if (plat === 'win32') {
     try {
-      const wmicOut = execSync('tasklist /fo csv /nh 2>nul', { timeout: 4000, stdio: 'pipe' }).toString().toLowerCase()
+      const { stdout: wmicOut } = await execAsync('tasklist /fo csv /nh 2>nul', { timeout: 4000 })
+      const wmicLower = wmicOut.toLowerCase()
       for (const name of VPN_PROCESS_PATTERNS) {
-        if (wmicOut.includes(name)) detectedProcesses.push(name)
+        if (new RegExp('\\b' + name + '\\b', 'i').test(wmicLower)) detectedProcesses.push(name)
       }
     } catch { /* ignore */ }
   }
@@ -485,5 +558,62 @@ export function getSystemNetworkContext() {
     proxySettings,    hasProxy,
     vpnProcesses: detectedProcesses, hasVpnApp,
     vpnConfidence: (hasTunnel ? 1 : 0) + (hasProxy ? 1 : 0) + (hasVpnApp ? 1 : 0)
+  }
+}
+
+// ─── Public IP + Geolocation ─────────────────────────────────────────────────
+
+function httpGet(url) {
+  return new Promise((resolve, reject) => {
+    const requester = url.startsWith('https') ? httpsRequest : httpRequest
+    const req = requester(url, { timeout: 8000 }, (res) => {
+      let body = ''
+      res.on('data', (chunk) => { body += chunk })
+      res.on('end', () => resolve(body))
+      res.on('error', reject)
+    })
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')) })
+    req.on('error', reject)
+    req.end()
+  })
+}
+
+export async function getPublicIpInfo() {
+  try {
+    // Step 1: Get IP and basic info from Cloudflare trace
+    const traceText = await httpGet('https://cloudflare.com/cdn-cgi/trace')
+    const traceMap = {}
+    for (const line of traceText.split('\n')) {
+      const idx = line.indexOf('=')
+      if (idx > 0) traceMap[line.slice(0, idx)] = line.slice(idx + 1).trim()
+    }
+    const ip = traceMap.ip || null
+    const countryCode = traceMap.loc || null
+    const colo = traceMap.colo || null
+
+    if (!ip) return { ip: null, error: 'Could not determine public IP from Cloudflare trace' }
+
+    // Step 2: Get full geolocation from ip-api.com
+    try {
+      const geoText = await httpGet(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city,isp,as,query`)
+      const geo = JSON.parse(geoText)
+      if (geo.status === 'success') {
+        return {
+          ip,
+          country: geo.country || null,
+          countryCode,
+          region: geo.regionName || null,
+          city: geo.city || null,
+          isp: geo.isp || null,
+          asn: geo.as || null,
+          colo
+        }
+      }
+    } catch { /* fall through to partial result */ }
+
+    // Partial result if ip-api fails
+    return { ip, country: null, countryCode, region: null, city: null, isp: null, asn: null, colo }
+  } catch (err) {
+    return { ip: null, error: err.message || 'Failed to fetch public IP info' }
   }
 }

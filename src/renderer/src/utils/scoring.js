@@ -14,14 +14,14 @@ export function calculateNetworkScore(metrics) {
     : 0
 
   // Latency score: exponential decay
-  // 5ms→97, 20ms→90, 50ms→78, 100ms→61, 200ms→37, 500ms→8
-  const scoreLatency = latencyMs >= 0
+  // 0 or missing → 0 (no data), 5ms→97, 20ms→90, 50ms→78, 100ms→61, 200ms→37, 500ms→8
+  const scoreLatency = (latencyMs > 0)
     ? Math.max(0, 100 * Math.pow(0.995, latencyMs))
     : 0
 
-  // Jitter score: linear penalty
-  // 0ms→100, 5ms→85, 10ms→70, 20ms→40, 33ms→0
-  const scoreJitter = Math.max(0, 100 - jitterMs * 3)
+  // Jitter score: exponential decay for better granularity
+  // 0ms→100, 5ms→86, 10ms→74, 20ms→54, 50ms→22
+  const scoreJitter = Math.max(0, 100 * Math.pow(0.97, jitterMs))
 
   // Weighted composite
   const weights = { download: 0.35, upload: 0.20, latency: 0.30, jitter: 0.15 }

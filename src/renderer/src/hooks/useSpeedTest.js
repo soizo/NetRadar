@@ -9,9 +9,29 @@ function timestamp() {
   return new Date().toTimeString().slice(0, 8)
 }
 
+function median(arr) {
+  if (arr.length === 0) return 0
+  const sorted = [...arr].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+}
+
 async function measureLatency(baseUrl, path, samples = 10, signal) {
   const times = []
   const url = `${baseUrl}${path}`
+
+  // Warm-up request to establish TCP+TLS connection (untimed)
+  try {
+    const warmupBust = `${url.includes('?') ? '&' : '?'}_nr=warmup_${Date.now()}`
+    await fetch(`${url}${warmupBust}`, {
+      cache: 'no-store',
+      mode: 'no-cors',
+      signal
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('Aborted')
+    // Ignore warm-up errors
+  }
 
   for (let i = 0; i < samples; i++) {
     if (signal?.aborted) throw new Error('Aborted')
@@ -51,37 +71,58 @@ async function measureLatency(baseUrl, path, samples = 10, signal) {
   }
 }
 
-async function measureDownload(baseUrl, path, sizeBytes, onProgress, signal) {
+async function measureDownload(baseUrl, path, sizeBytes, onProgress, signal, timeoutMs) {
   const cacheBust = `${path.includes('?') ? '&' : '?'}bytes=${sizeBytes}&_nr=${Date.now()}`
   const url = `${baseUrl}${path}${cacheBust}`
 
+  // Set up timeout abort
+  const timeoutController = new AbortController()
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs)
+
+  // Combine external signal with timeout signal
+  const combinedAbort = () => {
+    timeoutController.abort()
+    clearTimeout(timeoutId)
+  }
+  if (signal) {
+    signal.addEventListener('abort', combinedAbort, { once: true })
+  }
+
   let response
   try {
-    response = await fetch(url, { cache: 'no-store', signal })
+    response = await fetch(url, { cache: 'no-store', signal: timeoutController.signal })
   } catch (err) {
+    clearTimeout(timeoutId)
     if (err.name === 'AbortError') throw new Error('Aborted')
     throw err
   }
 
   if (!response.ok && response.type !== 'opaque') {
+    clearTimeout(timeoutId)
     throw new Error(`HTTP ${response.status}: ${response.statusText}`)
   }
 
   const reader = response.body?.getReader()
   if (!reader) {
+    // Fallback: read as blob with proper timing
+    const fallbackStart = performance.now()
     const blob = await response.blob()
-    const elapsed = 0.1
+    const fallbackElapsed = (performance.now() - fallbackStart) / 1000
+    clearTimeout(timeoutId)
+    const elapsed = fallbackElapsed > 0 ? fallbackElapsed : 0.001
+    // Decimal Mbps: bytes * 8 / seconds / 1e6
     const speedMbps = (blob.size * 8) / elapsed / 1e6
-    return { speedMbps, samples: [speedMbps] }
+    return { speedMbps, samples: [speedMbps], bytesReceived: blob.size }
   }
 
   const startTime = performance.now()
   let received = 0
-  let lastSample = startTime
-  const samples = []
+  let lastBytes = 0
+  let lastTime = startTime
+  const intervalSamples = []
 
   while (true) {
-    if (signal?.aborted) {
+    if (timeoutController.signal.aborted) {
       reader.cancel()
       throw new Error('Aborted')
     }
@@ -89,49 +130,76 @@ async function measureDownload(baseUrl, path, sizeBytes, onProgress, signal) {
     if (done) break
     received += value.length
     const now = performance.now()
-    const elapsed = (now - startTime) / 1000
 
-    if (elapsed > 0 && now - lastSample > 200) {
-      const speedMbps = (received * 8) / elapsed / 1e6
-      samples.push(speedMbps)
-      lastSample = now
+    // Sample every 200ms interval
+    if (now - lastTime >= 200) {
+      const dtSec = (now - lastTime) / 1000
+      const dBytes = received - lastBytes
+      // Decimal Mbps: bytes * 8 / seconds / 1e6
+      const intervalSpeed = (dBytes * 8) / dtSec / 1e6
+      intervalSamples.push(intervalSpeed)
+
+      // Live display: rolling average of last 3 intervals
+      const recentSamples = intervalSamples.slice(-3)
+      const displaySpeed = recentSamples.reduce((a, b) => a + b, 0) / recentSamples.length
+
+      lastBytes = received
+      lastTime = now
+
       onProgress?.({
         received,
         total: sizeBytes,
-        speedMbps,
+        speedMbps: displaySpeed,
         percent: Math.min(100, (received / sizeBytes) * 100)
       })
     }
   }
 
-  const totalElapsed = (performance.now() - startTime) / 1000
-  const finalSpeed = totalElapsed > 0 ? (received * 8) / totalElapsed / 1e6 : 0
-  return { speedMbps: finalSpeed, samples, bytesReceived: received }
+  clearTimeout(timeoutId)
+
+  // Final result: discard first 25% of samples (TCP slow-start), take median of remaining
+  let finalSpeed
+  if (intervalSamples.length > 0) {
+    const discardCount = Math.floor(intervalSamples.length * 0.25)
+    const stableSamples = intervalSamples.slice(discardCount)
+    finalSpeed = stableSamples.length > 0 ? median(stableSamples) : median(intervalSamples)
+  } else {
+    // No interval samples collected; fall back to overall average
+    const totalElapsed = (performance.now() - startTime) / 1000
+    finalSpeed = totalElapsed > 0 ? (received * 8) / totalElapsed / 1e6 : 0
+  }
+
+  return { speedMbps: finalSpeed, samples: intervalSamples, bytesReceived: received }
 }
 
-function measureUpload(baseUrl, path, sizeBytes, onProgress, signal) {
+function measureUpload(baseUrl, path, sizeBytes, onProgress, signal, timeoutMs) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new Error('Aborted'))
       return
     }
 
-    // Generate pseudo-random data
+    // Generate random data in 64KB chunks
     const data = new Uint8Array(sizeBytes)
-    for (let i = 0; i < sizeBytes; i++) {
-      data[i] = (i * 137 + 53) & 0xff
+    const chunkSize = 65536
+    for (let offset = 0; offset < sizeBytes; offset += chunkSize) {
+      const len = Math.min(chunkSize, sizeBytes - offset)
+      crypto.getRandomValues(new Uint8Array(data.buffer, offset, len))
     }
 
     const xhr = new XMLHttpRequest()
     const startTime = performance.now()
     const samples = []
+    let lastLoaded = 0
 
     xhr.upload.addEventListener('progress', (e) => {
       if (e.loaded > 0) {
         const elapsed = (performance.now() - startTime) / 1000
         if (elapsed > 0) {
+          // Decimal Mbps: bytes * 8 / seconds / 1e6
           const speedMbps = (e.loaded * 8) / elapsed / 1e6
           samples.push(speedMbps)
+          lastLoaded = e.loaded
           onProgress?.({
             sent: e.loaded,
             total: sizeBytes,
@@ -144,7 +212,9 @@ function measureUpload(baseUrl, path, sizeBytes, onProgress, signal) {
 
     xhr.addEventListener('load', () => {
       const elapsed = (performance.now() - startTime) / 1000
-      const finalSpeed = elapsed > 0 ? (sizeBytes * 8) / elapsed / 1e6 : 0
+      // Use actual transferred size from progress events
+      const transferred = lastLoaded > 0 ? lastLoaded : sizeBytes
+      const finalSpeed = elapsed > 0 ? (transferred * 8) / elapsed / 1e6 : 0
       resolve({ speedMbps: finalSpeed, samples })
     })
 
@@ -155,10 +225,10 @@ function measureUpload(baseUrl, path, sizeBytes, onProgress, signal) {
     const cacheBust = `${path.includes('?') ? '&' : '?'}_nr=${Date.now()}`
     xhr.open('POST', `${baseUrl}${path}${cacheBust}`)
     xhr.setRequestHeader('Content-Type', 'application/octet-stream')
-    xhr.timeout = 60000
+    xhr.timeout = timeoutMs
 
     if (signal) {
-      signal.addEventListener('abort', () => xhr.abort())
+      signal.addEventListener('abort', () => xhr.abort(), { once: true })
     }
 
     xhr.send(data.buffer)
@@ -171,6 +241,7 @@ export function useSpeedTest() {
   const [results, setResults] = useState(null)
   const [logs, setLogs] = useState([])
   const abortControllerRef = useRef(null)
+  const runningRef = useRef(false)
 
   function addLog(message, type = 'info') {
     setLogs(prev => [...prev, { time: timestamp(), type, message }])
@@ -183,19 +254,49 @@ export function useSpeedTest() {
   const startTest = useCallback(async (server, settings = {}) => {
     if (!server) return
 
+    // Concurrent test guard
+    if (runningRef.current) return
+    if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+      abortControllerRef.current.abort()
+    }
+
     const abortController = new AbortController()
     abortControllerRef.current = abortController
     const signal = abortController.signal
+    runningRef.current = true
 
     clearLogs()
     setResults(null)
     setProgress({ phase: '', percent: 0, currentSpeed: 0 })
 
-    const downloadSizeBytes = (settings.download_size_mb || 25) * 1024 * 1024
-    const uploadSizeBytes = (settings.upload_size_mb || 10) * 1024 * 1024
+    // Decimal MB for size (consistent with decimal Mbps for speed)
+    const downloadSizeBytes = (settings.download_size_mb || 25) * 1000 * 1000
+    const uploadSizeBytes = Math.min(
+      (settings.upload_size_mb || 10) * 1000 * 1000,
+      100 * 1000 * 1000 // 100 MB max cap
+    )
     const latencySamples = settings.latency_samples || 10
+    const timeoutMs = settings.timeout_ms || 30000
 
     try {
+      // ── Connection pre-check ───────────────────────────────────
+      try {
+        const preCheckController = new AbortController()
+        const preCheckTimeout = setTimeout(() => preCheckController.abort(), 3000)
+        await fetch(server.base_url, {
+          mode: 'no-cors',
+          cache: 'no-store',
+          signal: preCheckController.signal
+        })
+        clearTimeout(preCheckTimeout)
+      } catch (err) {
+        if (signal.aborted) throw new Error('Aborted')
+        setStatus('error')
+        addLog('Server unreachable', 'error')
+        runningRef.current = false
+        return
+      }
+
       // ── Latency ────────────────────────────────────────────────
       setStatus('latency')
       addLog(`Connecting to ${server.name} (${server.location})...`, 'info')
@@ -224,6 +325,7 @@ export function useSpeedTest() {
       let downloadResult = { speedMbps: 0, samples: [] }
 
       if (server.download_path) {
+        let lastLoggedPercent = 0
         try {
           downloadResult = await measureDownload(
             server.base_url,
@@ -231,14 +333,16 @@ export function useSpeedTest() {
             downloadSizeBytes,
             ({ speedMbps, percent }) => {
               setProgress({ phase: 'download', percent: percent || 0, currentSpeed: speedMbps })
-              if (Math.floor((percent || 0) % 25) === 0) {
+              if (percent >= lastLoggedPercent + 25) {
                 addLog(
                   `Download: ${speedMbps.toFixed(1)} Mbps (${Math.round(percent || 0)}%)`,
                   'data'
                 )
+                lastLoggedPercent = Math.floor(percent / 25) * 25
               }
             },
-            signal
+            signal,
+            timeoutMs
           )
         } catch (err) {
           if (err.message === 'Aborted') throw err
@@ -273,7 +377,8 @@ export function useSpeedTest() {
             ({ speedMbps, percent }) => {
               setProgress({ phase: 'upload', percent: percent || 0, currentSpeed: speedMbps })
             },
-            signal
+            signal,
+            timeoutMs
           )
           addLog(
             `Upload complete: ${uploadResult.speedMbps.toFixed(2)} Mbps`,
@@ -319,13 +424,13 @@ export function useSpeedTest() {
       setResults(finalResults)
       setStatus('complete')
 
-      addLog('─'.repeat(48), 'info')
+      addLog('\u2500'.repeat(48), 'info')
       addLog(`DOWNLOAD   : ${downloadResult.speedMbps.toFixed(2)} Mbps`, 'data')
       addLog(`UPLOAD     : ${uploadResult.speedMbps.toFixed(2)} Mbps`, 'data')
       addLog(`LATENCY    : ${latencyResult.latencyMs} ms`, 'data')
       addLog(`JITTER     : ${latencyResult.jitterMs} ms`, 'data')
       addLog(`SCORE      : ${score.overall}/100 [${score.grade}] ${score.rating}`, 'success')
-      addLog('─'.repeat(48), 'info')
+      addLog('\u2500'.repeat(48), 'info')
       addLog('Test complete.', 'success')
 
     } catch (err) {
@@ -339,6 +444,8 @@ export function useSpeedTest() {
         addLog('Test failed. Check your connection and try again.', 'error')
         console.error('Speed test error:', err)
       }
+    } finally {
+      runningRef.current = false
     }
   }, [])
 

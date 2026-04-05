@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { useT } from '../i18n/index.jsx'
 import appIcon from '../../../../resources/icon.png'
 
+const api = window.api || {}
+
 export default function TitleBar({ appTitle = 'NetRadar' }) {
   const { t } = useT()
   const [isMaximized, setIsMaximized] = useState(false)
-  const api = window.api || {}
 
   const TITLEBAR_ICONS = {
     minimize: '\uF030',
@@ -35,7 +36,7 @@ export default function TitleBar({ appTitle = 'NetRadar' }) {
     return () => {
       if (unsubscribe) unsubscribe()
     }
-  }, [api])
+  }, [])
 
   function handleMinimize() {
     if (api.windowMinimize) api.windowMinimize()

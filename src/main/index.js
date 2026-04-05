@@ -7,7 +7,8 @@ import {
   getDnsInfo,
   getLocalNetworkInfo,
   getWifiInfo,
-  getSystemNetworkContext
+  getSystemNetworkContext,
+  getPublicIpInfo
 } from './networkDiagnostics.js'
 
 const isDev = process.env.NODE_ENV === 'development'
@@ -218,7 +219,12 @@ function createWindow() {
   mainWindow.on('resize', () => emitWindowState(mainWindow))
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        shell.openExternal(url)
+      }
+    } catch {}
     return { action: 'deny' }
   })
 
@@ -297,6 +303,7 @@ app.whenReady().then(() => {
   ipcMain.handle('diag-local-network',  async ()        => getLocalNetworkInfo())
   ipcMain.handle('diag-wifi',           async ()        => getWifiInfo())
   ipcMain.handle('diag-sys-context',    async ()        => getSystemNetworkContext())
+  ipcMain.handle('diag-public-ip',      async ()        => getPublicIpInfo())
 
   ipcMain.on('window-set-position', (e, x, y) => {
     const win = BrowserWindow.fromWebContents(e.sender)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useT, SUPPORTED_LANGS } from '../i18n/index.jsx'
 import iconConfig from '../assets/icons/icon-config.png'
 import CustomSelect from './CustomSelect.jsx'
@@ -27,6 +27,11 @@ export default function ConfigPanel({ config, onSaveConfig, onResetConfig, appVe
   const [newServer, setNewServer] = useState({ ...EMPTY_SERVER })
   const [configPath, setConfigPath] = useState('')
   const [addError, setAddError] = useState('')
+  const savedTimerRef = useRef(null)
+
+  useEffect(() => {
+    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }
+  }, [])
 
   useEffect(() => {
     if (config) {
@@ -154,7 +159,8 @@ export default function ConfigPanel({ config, onSaveConfig, onResetConfig, appVe
     if (!localConfig) return
     await onSaveConfig(localConfig)
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000)
   }
 
   function handleRestoreDefaults() {

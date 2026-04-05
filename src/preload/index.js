@@ -27,5 +27,9 @@ contextBridge.exposeInMainWorld('api', {
   diagLocalNetwork: ()    => ipcRenderer.invoke('diag-local-network'),
   diagWifi:         ()    => ipcRenderer.invoke('diag-wifi'),
   diagSysContext:   ()    => ipcRenderer.invoke('diag-sys-context'),
-  onMenuNavigate:   (cb)  => ipcRenderer.on('menu-navigate', cb)
+  diagPublicIp:     ()    => ipcRenderer.invoke('diag-public-ip'),
+  onMenuNavigate: (callback) => {
+    ipcRenderer.on('menu-navigate', callback)
+    return () => ipcRenderer.removeListener('menu-navigate', callback)
+  }
 })

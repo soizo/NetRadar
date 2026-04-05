@@ -58,7 +58,7 @@ export function getConfig() {
 
   try {
     const raw = readFileSync(configPath, 'utf8')
-    const parsed = yaml.load(raw)
+    const parsed = yaml.load(raw, { schema: yaml.JSON_SCHEMA })
     if (!parsed || typeof parsed !== 'object') {
       return cloneConfig(DEFAULT_CONFIG)
     }

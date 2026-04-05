@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { formatSpeed } from '../utils/scoring.js'
 import { useT } from '../i18n/index.jsx'
 import iconHistory from '../assets/icons/icon-history.png'
@@ -33,6 +33,11 @@ function formatDate(iso, lang) {
 export default function HistoryPanel({ history = [], onClearHistory }) {
   const { t, lang } = useT()
   const [confirmClear, setConfirmClear] = useState(false)
+  const confirmTimerRef = useRef(null)
+
+  useEffect(() => {
+    return () => { if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current) }
+  }, [])
 
   const sortedHistory = [...history].reverse()
   const latest = sortedHistory[0]
@@ -44,14 +49,39 @@ export default function HistoryPanel({ history = [], onClearHistory }) {
     ? Math.round(history.reduce((sum, entry) => sum + (entry.score || 0), 0) / history.length)
     : null
 
+  function handleExportCSV() {
+    const headers = ['Date', 'Download (Mbps)', 'Upload (Mbps)', 'Latency (ms)', 'Jitter (ms)', 'Score', 'Grade', 'Server']
+    const rows = sortedHistory.map(entry => [
+      entry.timestamp || '',
+      entry.downloadMbps != null ? entry.downloadMbps.toFixed(2) : '',
+      entry.uploadMbps != null ? entry.uploadMbps.toFixed(2) : '',
+      entry.latencyMs != null ? entry.latencyMs.toFixed(1) : '',
+      entry.jitterMs != null ? entry.jitterMs.toFixed(1) : '',
+      entry.score != null ? entry.score : '',
+      entry.grade || '',
+      entry.server || ''
+    ])
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `netradar-history-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   function handleClear() {
     if (confirmClear) {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
       onClearHistory()
       setConfirmClear(false)
       return
     }
     setConfirmClear(true)
-    setTimeout(() => setConfirmClear(false), 3000)
+    confirmTimerRef.current = setTimeout(() => setConfirmClear(false), 3000)
   }
 
   return (
@@ -88,6 +118,14 @@ export default function HistoryPanel({ history = [], onClearHistory }) {
               <span className="history-banner-stat__label">{t('hist_avg_score')}</span>
               <strong className="history-banner-stat__value">{averageScore ?? '--'}</strong>
             </div>
+            {history.length > 0 && (
+              <button
+                className="btn-secondary"
+                onClick={handleExportCSV}
+              >
+                {t('hist_export_csv')}
+              </button>
+            )}
             {history.length > 0 && (
               <button
                 className={`btn-secondary ${confirmClear ? 'btn-secondary--danger' : ''}`}
